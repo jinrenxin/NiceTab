@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NiceTab Tabs Viewer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="layout">
+        <aside class="sidebar">
+          <div class="sidebar-title">目录</div>
+          <nav id="navList" class="nav-list"></nav>
+        </aside>
+        <div class="main">
+          <header class="header">
+            <div class="title">NiceTab Tabs Viewer</div>
+            <div class="actions">
+              <button id="addTagBtn" class="btn btn-light">新增分类</button>
+              <button id="saveChangesBtn" class="btn btn-save" type="button" disabled>
+                提交变更
+              </button>
+              <button id="refreshBtn" class="btn">刷新</button>
+            </div>
+          </header>
+          <section class="meta">
+            <div id="statusText" class="status">加载中</div>
+            <div id="metaText" class="meta-text"></div>
+            <div id="countText" class="count-text"></div>
+          </section>
+          <section class="mobile-nav">
+            <div class="mobile-nav-title">目录</div>
+            <nav id="navListMobile" class="nav-list nav-list-mobile"></nav>
+          </section>
+          <main id="content" class="content"></main>
+        </div>
+      </div>
+    </div>
+    <button id="backToTopBtn" class="back-to-top" type="button" aria-label="Back to top">↑</button>
+    <script src="/app.js"></script>
+  </body>
+</html>

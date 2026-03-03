@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  nicetab-web:
+    image: nicetab-web:latest
+    container_name: nicetab-web
+    network_mode: 'host'
+    environment:
+      - NODE_ENV=production
+      - PORT=7111
+      - GIST_PROVIDER=gitee
+      - GIST_ID=5qx0egr4n8wdl9yavfm6310
+      - GIST_TOKEN=0f9bf8587281483db0bf7dfaa482b66d
+      - GIST_FILENAME=__NiceTab_gist__.json
+    restart: unless-stopped
