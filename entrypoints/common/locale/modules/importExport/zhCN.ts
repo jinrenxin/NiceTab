@@ -16,7 +16,7 @@ const zhCN = {
   'importExport.importMode': '选择导入模式：',
   'importExport.importMode.optionLabel': `{label, select,
     Append {新增导入}
-    Override {覆盖导入}
+    Overwrite {覆盖导入}
     Merge {合并导入}
     other {新增导入}
   }`,
@@ -27,6 +27,7 @@ const zhCN = {
   'importExport.importSuccess': '导入成功',
   'importExport.importFailed': '导入失败，请检查格式是否正确',
   'importExport.settingsModuleTitle': `偏好设置导入导出`,
+  'importExport.syncConfigModuleTitle': `远程同步配置导入导出`,
 
   'importExport.exportContent': '导出内容：',
   'importExport.getContent': '生成内容',

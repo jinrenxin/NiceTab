@@ -37,7 +37,7 @@ const enUS: Record<LocaleKey, string> = {
   'sync.tip.resetStatus': 'Status Reset',
   'sync.tip.tokenChange': 'Changing the access token will clear the local {type} sync history',
   // 'sync.tip.contentTooLarge': 'Remote file too large, truncated by gist API; cannot merge to local.',
-  'sync.tip.syncHistory': 'Sync history only retains the last 50 records, you can also clear the history manually.',
+  'sync.tip.syncHistory': 'Sync history only retains the last 50 records, you can also clear the records manually.',
   'sync.tip.supportTip': 'Now NiceTab supports tab list and settings synchronization. Both will be synchronized simultaneously, while separate synchronization is not supported.',
   'sync.getYourToken': 'Get/Set your access token',
   'sync.syncHistory': 'Sync History',
@@ -56,8 +56,14 @@ const enUS: Record<LocaleKey, string> = {
   'sync.password': 'WebDAV Password',
   'sync.addConfig': 'Add New Config',
   'sync.tip.connectionName': 'Used to distinguish different WebDAV configs',
-  'sync.tip.directory': `WebDAV directory, supports multiple-level directories, such as <strong>/dir/subdir</strong>`,
-  'sync.tip.filename': `The filename for synchronizing data, any suffix can be used, such as <strong>nicetab-sync.txt</strong>`,
+  'sync.tip.directory': `WebDAV directory, supports multiple-level directories, e.g., <strong>/dir/subdir</strong>`,
+  'sync.tip.filename': `The filename for synchronizing data, any suffix can be used, e.g., <strong>nicetab-sync.txt</strong>`,
+
+  // Backup related
+  'sync.bakFilename': 'Backup Filename',
+  'sync.tip.bakFilenameGists': 'Remote disaster recovery backup filename (may be useful)',
+  'sync.bakDirectory': 'Backup Directory',
+  'sync.tip.bakDirectory': 'WebDAV remote disaster recovery backup directory. Supports multi-level directories, e.g., <strong>/dir/subdir</strong>',
 }
 
 export default enUS;

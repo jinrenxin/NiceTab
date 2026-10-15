@@ -18,7 +18,12 @@ import type {
   SettingsProps,
   PageWidthTypes,
 } from '~/entrypoints/types';
-import { themeUtils, settingsUtils } from '~/entrypoints/common/storage';
+import {
+  themeUtils,
+  settingsUtils,
+  initSettingsStorageListener,
+  initThemeStorageListener,
+} from '~/entrypoints/common/storage';
 import { updateAdminPageUrlDebounced } from '~/entrypoints/common/tabs';
 
 export default function Root({
@@ -36,12 +41,10 @@ export default function Root({
     changeLocale: changeLocaleCustom,
     messages,
   } = useCustomLocale();
-  const { themeTypeConfig, themeType, changeThemeType } = useThemeTypeConfig();
+  const { themeTypeConfig, themeType, changeThemeType } = useThemeTypeConfig(pageContext);
   const [hasReady, setHasReady] = useState(false);
   const [primaryColor, setPrimaryColor] = useState(PRIMARY_COLOR);
-  const [pageWidthType, setPageWidthType] = useState<PageWidthTypes>(
-    settingsUtils.settings?.pageWidthType || 'fixed',
-  );
+  const [pageWidthType, setPageWidthType] = useState<PageWidthTypes>('responsive');
 
   const handleLocaleChange = async (language?: LanguageTypes) => {
     changeLocaleAntd(language);
@@ -104,6 +107,9 @@ export default function Root({
       if (data.currWindowId !== currWindow.id) {
         updateAdminPageUrlDebounced();
       }
+    } else if (msgType === 'showMessage') {
+      const { type, content } = data;
+      $message[type](content);
     }
   };
 
@@ -117,6 +123,18 @@ export default function Root({
     initData();
     getManifest();
     browser.runtime.onMessage.addListener(messageListener);
+
+    const settingsUnwatch = initSettingsStorageListener(() => {
+      initData();
+    });
+    const themeUnwatch = initThemeStorageListener(() => {
+      initData();
+    });
+
+    return () => {
+      settingsUnwatch();
+      themeUnwatch();
+    };
   }, []);
 
   return (

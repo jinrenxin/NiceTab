@@ -1,9 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Modal } from 'antd';
 import { useIntlUtls } from '~/entrypoints/common/hooks/global';
+import { settingsUtils } from '~/entrypoints/common/storage';
+import { ENUM_SETTINGS_PROPS } from '~/entrypoints/common/constants';
 import MoveToModal from './MoveToModal';
 import useMoveTo from './hooks/moveTo';
 import type { RenderTreeNodeActionProps, MoveToCallbackProps } from './types';
+
+const { CONFIRM_BEFORE_DELETING_GROUPS } = ENUM_SETTINGS_PROPS;
 
 export interface ModalViewProps {
   open: boolean;
@@ -14,14 +18,26 @@ export interface ModalViewProps {
 export function useTreeNodeAction(actionFn?: (props: RenderTreeNodeActionProps) => void) {
   const [removeModalVisible, setRemoveModalVisible] = useState(false);
   const [moveToModalVisible, setMoveToModalVisible] = useState(false);
+  const [dedupModalVisible, setDedupModalVisible] = useState(false);
   const [actionParams, setActionParams] = useState<RenderTreeNodeActionProps>();
   const onAction = useCallback(
     (props: RenderTreeNodeActionProps) => {
       setActionParams(props);
+
       if (props.actionName === 'remove') {
-        setRemoveModalVisible(true);
+        const settings = settingsUtils.settings || {};
+        if (
+          props.node?.type === 'tabGroup' &&
+          !settings[CONFIRM_BEFORE_DELETING_GROUPS]
+        ) {
+          actionFn?.(props);
+        } else {
+          setRemoveModalVisible(true);
+        }
       } else if (props.actionName === 'moveTo') {
         setMoveToModalVisible(true);
+      } else if (props.actionName === 'dedup') {
+        setDedupModalVisible(true);
       } else {
         actionFn?.(props);
       }
@@ -35,6 +51,8 @@ export function useTreeNodeAction(actionFn?: (props: RenderTreeNodeActionProps) 
       setRemoveModalVisible(false);
     } else if (type === 'moveTo') {
       setMoveToModalVisible(false);
+    } else if (type === 'dedup') {
+      setDedupModalVisible(false);
     }
   }, []);
 
@@ -43,6 +61,7 @@ export function useTreeNodeAction(actionFn?: (props: RenderTreeNodeActionProps) 
     actionParams,
     removeModalVisible,
     moveToModalVisible,
+    dedupModalVisible,
     closeModal,
   };
 }
@@ -58,6 +77,7 @@ export function RemoveActionModal({
 }) {
   const [modalVisible, setModalVisible] = useState(false);
   const { $fmt } = useIntlUtls();
+
   const removeDesc = useMemo(() => {
     const { node } = actionParams || {};
     const typeName = $fmt(`home.${node?.type || 'tag'}`);
@@ -109,7 +129,11 @@ export function MoveToActionModal({
 
   const handleOpen = useCallback(() => {
     const { node } = actionParams || {};
-    openModal({ tagId: node?.key as string });
+    if (node?.type === 'tag') {
+      openModal({ tagId: node?.key as string });
+    } else {
+      openModal({ groupId: node?.key as string });
+    }
   }, [actionParams, openModal]);
 
   useEffect(() => {
@@ -130,5 +154,45 @@ export function MoveToActionModal({
         onCancel?.();
       }}
     />
+  ) : null;
+}
+
+// 去重
+export function DedupActionModal({
+  open = false,
+  actionParams,
+  onOk,
+  onCancel,
+}: ModalViewProps & {
+  onOk?: (props: RenderTreeNodeActionProps) => void;
+}) {
+  const [modalVisible, setModalVisible] = useState(false);
+  const { $fmt } = useIntlUtls();
+
+  const handleOk = useCallback(() => {
+    setModalVisible(false);
+    onOk?.(actionParams!);
+  }, [actionParams, onOk]);
+
+  const handleCancel = useCallback(() => {
+    setModalVisible(false);
+    onCancel?.();
+  }, [onCancel]);
+
+  useEffect(() => {
+    setModalVisible(open);
+  }, [open]);
+
+  return modalVisible ? (
+    <Modal
+      title={$fmt('home.dedupTitle')}
+      width={400}
+      centered
+      open={modalVisible}
+      onOk={handleOk}
+      onCancel={handleCancel}
+    >
+      <div>{$fmt('home.dedupDesc')}</div>
+    </Modal>
   ) : null;
 }

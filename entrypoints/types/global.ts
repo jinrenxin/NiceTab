@@ -43,7 +43,7 @@ export interface GlobalContextProps {
 }
 
 // 语言
-export type LanguageTypes = 'zh-CN' | 'en-US';
+export type LanguageTypes = 'zh-CN' | 'zh-TW' | 'en-US' | 'ru-RU';
 // react-intl formatMessage 参数
 export type IntlForamtMessageParams = MessageDescriptor & {
   id?: LocaleKeys;
@@ -99,6 +99,9 @@ export type TabEvents =
   | 'onUpdated'
   | 'onHighlighted';
 
+// 标签组事件
+export type TabGroupEvents = 'onCreated' | 'onMoved' | 'onRemoved' | 'onUpdated';
+
 // 操作名称
 export type ActionNames =
   | 'openAdminTab'
@@ -111,6 +114,7 @@ export type ActionNames =
 // 页面模块名称
 export type PageModuleNames =
   | 'home'
+  | 'snapshots'
   | 'settings'
   | 'import-export'
   | 'sync'
@@ -125,6 +129,8 @@ export type PopupModuleNames =
   | 'openedTabs';
 
 export type PageWidthTypes = 'fixed' | 'responsive';
+
+export type NewTabDisplayTypes = 'homePage' | 'niceNewtab' | 'default';
 
 export type ActionBtnStyle = 'icon' | 'text';
 
@@ -166,6 +172,7 @@ export type SettingsProps = {
   openAdminTabAfterSendTabs?: boolean; // 发送标签页后是否打开管理后台
   closeTabsAfterSendTabs?: boolean; // 发送标签页后是否关闭标签页
   actionAutoCloseFlags?: ActionNames[]; // 各种发送标签页操作是否自动关闭标签页的开关配置
+  createNewGroupOnSendSingleTab?: boolean; // 是否在发送单个标签页时自动创建标签组
   allowDuplicateTabs?: boolean; // 同一个标签组中是否允许重复的标签页
   allowDuplicateGroups?: boolean; // 同一个分类中是否允许重复的标签组
   /* 打开标签页配置 */
@@ -184,6 +191,7 @@ export type SettingsProps = {
   /* 其他操作配置 */
   deleteUnlockedEmptyGroup?: boolean; // 是否删除未锁定的空标签组
   confirmBeforeDeletingTabs?: boolean; // 删除标签页前是否确认
+  confirmBeforeDeletingGroups?: boolean; // 删除标签组前是否确认
   linkTemplate?: string; // 链接模板
   tabCountThreshold?: number; // 分类中标签页超过该数量时，则右侧面板开启虚拟滚动
   groupInsertPosition?: InsertPositions; // 标签组插入位置：在分类的标签组列表顶部还是底部
@@ -198,6 +206,9 @@ export type SettingsProps = {
   autoExpandHomeTree?: boolean; // 进入列表页时，是否自动展开全部节点
   pageWidthType?: PageWidthTypes; // 主内容区宽度设置
   showTabTitleTooltip?: boolean; // 是否显示标签页标题的tooltip
+  /* 新标签页配置 */
+  newTabDisplay?: NewTabDisplayTypes; // 新标签页显示方式
+  searchEngines?: SearchEngine[]; // 搜索引擎配置
   /* 同步配置 */
   remoteSyncWithSettings?: boolean; // 偏好设置是否与列表一起同步
   autoSync?: boolean; // 是否开启自动同步
@@ -217,5 +228,13 @@ export type HotkeyItem = HotkeyOption & {
   combo: string[];
   label?: string;
 };
+
+// 搜索引擎
+export interface SearchEngine {
+  id: string;
+  name: string;
+  url: string;
+  default?: boolean;
+}
 
 export default { name: 'global-types' };

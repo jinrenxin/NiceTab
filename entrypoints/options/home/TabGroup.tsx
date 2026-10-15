@@ -2,24 +2,16 @@ import { useEffect, useRef, useState, useMemo, memo, useCallback } from 'react';
 import { theme, message, Modal, Checkbox, Spin, Skeleton } from 'antd';
 import type { CheckboxProps } from 'antd';
 import {
-  CloseOutlined,
   DeleteOutlined,
-  LockOutlined,
   LockFilled,
-  UnlockOutlined,
-  StarOutlined,
   StarFilled,
   ExportOutlined,
   SendOutlined,
   CopyOutlined,
-  BlockOutlined,
-  SortAscendingOutlined,
-  SortDescendingOutlined,
 } from '@ant-design/icons';
 import copyToClipboard from 'copy-to-clipboard';
 import { IconRepeat } from '~/entrypoints/common/components/icon/CustomIcon';
 import { GroupItem, TabItem, ActionBtnStyle } from '~/entrypoints/types';
-import { type LocaleKeys } from '~/entrypoints/common/locale';
 import {
   ENUM_COLORS,
   UNNAMED_GROUP,
@@ -38,10 +30,13 @@ import DropComponent from '~/entrypoints/common/components/DropComponent';
 import { HomeContext } from './hooks/treeData';
 import { eventEmitter } from './hooks/homeCustomEvent';
 import EditInput from '../components/EditInput';
-import ActionBtnList, { type ActionOptionItem } from '../components/ActionBtnList';
-import TabListItem from './TabListItem';
+import ActionBtnList, {
+  type ActionOptionItem,
+} from '~/entrypoints/common/components/ActionBtnList';
+import TabListItem, { type QuickSelectFunc } from './TabListItem';
 import {
   StyledGroupWrapper,
+  StyledGroupStickyHeader,
   StyledGroupHeader,
   StyledTabActions,
   StyledTabListWrapper,
@@ -50,26 +45,26 @@ import type {
   DndTabItemProps,
   DndTabItemOnDropCallback,
   MoveToCallbackProps,
+  GroupActionName,
+  TabActionName,
 } from './types';
 import {
   dndKeys,
   defaultGroupActions,
   defaultTabActions,
-  groupActionOptions,
   tabsActionOptions,
-  type GroupActionName,
-  type TabActionName,
   type ActionOption,
 } from './constants';
 import MoveToModal from './MoveToModal';
 import useMoveTo from './hooks/moveTo';
 import useMultiSelection from './hooks/multiSelection';
+import useGroupActions from './hooks/groupActions.tsx';
 
 const dndKey = dndKeys.tabItem;
 const {
   CONFIRM_BEFORE_DELETING_TABS,
+  CONFIRM_BEFORE_DELETING_GROUPS,
   DELETE_AFTER_RESTORE,
-  GROUP_ACTION_BTNS_COMMONLY_USED,
 } = ENUM_SETTINGS_PROPS;
 
 type TabGroupProps = GroupItem & {
@@ -83,6 +78,7 @@ type TabGroupProps = GroupItem & {
   actionBtnStyle?: ActionBtnStyle;
   onChange?: (data: Partial<GroupItem>) => void;
   onRemove?: () => void;
+  onCreate?: (tagId: string, groupId: string, pos: 'before' | 'after') => void;
   onRestore?: () => void;
   onStarredChange?: (isStarred: boolean) => void;
   onDedup?: () => void;
@@ -109,9 +105,10 @@ function TabGroup({
   allowTabActions = defaultTabActions,
   canDrag = true,
   canDrop = true,
-  actionBtnStyle = 'text',
+  actionBtnStyle = 'icon',
   onChange,
   onRemove,
+  onCreate,
   onRestore,
   onStarredChange,
   onDedup,
@@ -141,6 +138,11 @@ function TabGroup({
   } = useMoveTo();
   const { treeDataHook } = useContext(HomeContext);
 
+  useEffect(() => {
+    const tabIds = tabList.map(item => item.tabId);
+    setSelectedTabIds(ids => ids.filter(id => tabIds.includes(id)));
+  }, [tabList]);
+
   const tag = useMemo(() => {
     return { isLocked: tagLocked };
   }, [tagLocked]);
@@ -168,9 +170,41 @@ function TabGroup({
     });
   }, [$fmt]);
 
+  // 快捷选择，起始位置
+  const [quickSelectedTabIds, setQuickSelectedTabIds] = useState<string[]>([]);
+  const handleTabQuickSelect: QuickSelectFunc = async (tab, selected) => {
+    // 由于快捷选择直接复用了checkbox的选择，onChange 回调中的setSelectedTabIds会覆盖quickSelect的setSelectedTabIds
+    // 所以这里延时100ms，等待onChange回调执行完毕，再执行后面的操作
+    await new Promise(r => setTimeout(r, 100));
+
+    if (quickSelectedTabIds.length === 0) {
+      selected && setQuickSelectedTabIds([tab.tabId]);
+    } else if (quickSelectedTabIds.length === 1) {
+      if (selected) {
+        let startIndex = tabList.findIndex(item => item.tabId === quickSelectedTabIds[0]);
+        let endIndex = tabList.findIndex(item => item.tabId === tab.tabId);
+        if (startIndex > endIndex) {
+          [startIndex, endIndex] = [endIndex, startIndex];
+        }
+
+        const _selectedTabIds = tabList
+          .slice(startIndex, endIndex + 1)
+          .map(item => item.tabId);
+
+        const newSelectedIds = [...new Set([...selectedTabIds, ..._selectedTabIds])];
+        setSelectedTabIds(newSelectedIds);
+        setQuickSelectedTabIds([]);
+      } else {
+        quickSelectedTabIds[0] === tab.tabId && setQuickSelectedTabIds([]);
+      }
+    } else {
+      setQuickSelectedTabIds([]);
+    }
+  };
+
   // 已选择的tabItem数组
   const selectedTabs = useMemo(() => {
-    return tabList.filter(tab => selectedTabIds.includes(tab.tabId));
+    return tabList?.filter(tab => selectedTabIds.includes(tab.tabId)) || [];
   }, [tabList, selectedTabIds]);
   // 是否全选
   const isAllChecked = useMemo(() => {
@@ -207,16 +241,6 @@ function TabGroup({
   const handleGroupCopy = useCallback(() => {
     onCopy?.(groupId);
   }, [groupId]);
-
-  const handleCopyLinks = useCallback(() => {
-    const tabLinks = tabListUtils.copyLinks(tabList);
-    const result = copyToClipboard(tabLinks);
-    if (result) {
-      messageApi.success($fmt('common.CopySuccess'));
-    } else {
-      messageApi.error($fmt('common.CopyFailed'));
-    }
-  }, [tabList]);
 
   const handleTabChange = useCallback((newData: TabItem) => {
     eventEmitter.emit('home:treeDataHook', {
@@ -255,6 +279,7 @@ function TabGroup({
     const settings = settingsUtils.settings;
     if (settings[DELETE_AFTER_RESTORE] && !group?.isLocked) {
       setSelectedTabIds([]);
+      setQuickSelectedTabIds([]);
     }
   }, [group, selectedTabs]);
 
@@ -266,6 +291,9 @@ function TabGroup({
         callback: () => {
           setSelectedTabIds(selectedTabIds =>
             selectedTabIds.filter(id => !tabs.some(tab => tab.tabId === id)),
+          );
+          setQuickSelectedTabIds(ids =>
+            ids.some(id => tabs.some(tab => tab.tabId === id)) ? [] : ids,
           );
         },
       });
@@ -304,9 +332,16 @@ function TabGroup({
   );
   // 拖放到目标元素时触发 (targetData.groupId = 当前的groupId)
   const handleTabItemDrop: DndTabItemOnDropCallback = useCallback((...params) => {
+    const params0 = { ...(params[0] || {}) };
+
+    // 从已打开的浏览器标签页拖拽到列表标签页
+    if (params0.sourceData?.from === 'opened-tabs') {
+      params0.actionType = 'opened2tab';
+    }
+
     eventEmitter.emit('home:treeDataHook', {
       action: 'handleTabItemDrop',
-      params,
+      params: [params0],
     });
   }, []);
 
@@ -321,6 +356,9 @@ function TabGroup({
         setSelectedTabIds(ids => {
           return ids.filter(id => !sourceData?.selectedValues?.includes(id));
         });
+        setQuickSelectedTabIds(ids =>
+          ids.some(id => sourceData?.selectedValues?.includes(id)) ? [] : ids,
+        );
       }
     },
     [draggingTabItem, selectedTabIds, setSelectedTabIds],
@@ -333,130 +371,63 @@ function TabGroup({
     });
   }, []);
 
-  const getGroupActionOptions: () => ActionOptionItem[] = useCallback(() => {
-    const actionMap = groupActionOptions.reduce(
-      (result, option) => {
-        result[option.actionName] = option;
-        return result;
-      },
-      {} as Record<GroupActionName, ActionOption>,
-    );
+  const handleGroupAction = useCallback(
+    (actionName: GroupActionName, actionGroupId: string) => {
+      if (actionName === 'remove') {
+        const settings = settingsUtils.settings || {};
+        if (settings[CONFIRM_BEFORE_DELETING_GROUPS]) {
+          setModalVisible(true);
+        } else {
+          onRemove?.();
+        }
+      } else if (actionName === 'restore') {
+        onRestore?.();
+      } else if (actionName === 'addGroupBefore') {
+        onCreate?.(tagId!, actionGroupId, 'before');
+      } else if (actionName === 'addGroupAfter') {
+        onCreate?.(tagId!, actionGroupId, 'after');
+      } else if (actionName === 'lock') {
+        onChange?.({ isLocked: !isLocked });
+      } else if (actionName === 'star') {
+        onStarredChange?.(!isStarred);
+      } else if (actionName === 'moveTo') {
+        openMoveToModal?.({ groupId: actionGroupId });
+      } else if (actionName === 'clone') {
+        handleGroupCopy();
+      } else if (actionName === 'dedup') {
+        setDedupModalVisible(true);
+      } else if (actionName === 'tabsSortAsc') {
+        handleTabsSort('ascending');
+      } else if (actionName === 'tabsSortDesc') {
+        handleTabsSort('descending');
+      }
+    },
+    [
+      tagId,
+      groupId,
+      isLocked,
+      isStarred,
+      onRestore,
+      onChange,
+      onRemove,
+      onCreate,
+      onStarredChange,
+      openMoveToModal,
+      handleGroupCopy,
+      handleTabsSort,
+    ],
+  );
 
-    const btns: ActionOptionItem[] = [
-      {
-        key: 'remove',
-        label: $fmt(actionMap['remove'].labelKey),
-        icon: <CloseOutlined />,
-        disabled: tagLocked || isLocked,
-        hoverColor: ENUM_COLORS.red,
-        // validator: () => !isLocked,
-        onClick: () => setModalVisible(true),
-      },
-      {
-        key: 'restore',
-        label: $fmt(actionMap['restore'].labelKey),
-        icon: <ExportOutlined />,
-        onClick: () => onRestore?.(),
-      },
-      {
-        key: 'lock',
-        label: $fmt(
-          isLocked ? 'home.tabGroup.unlock' : 'home.tabGroup.lock',
-        ) as LocaleKeys,
-        disabled: tagLocked,
-        icon: isLocked ? <UnlockOutlined /> : <LockOutlined />,
-        onClick: () => onChange?.({ isLocked: !isLocked }),
-      },
-      {
-        key: 'star',
-        label: $fmt(
-          isStarred ? 'home.tabGroup.unstar' : 'home.tabGroup.star',
-        ) as LocaleKeys,
-        disabled: tagLocked,
-        icon: <StarOutlined />,
-        onClick: () => onStarredChange?.(!isStarred),
-      },
-      {
-        key: 'moveTo',
-        label: $fmt(actionMap['moveTo'].labelKey),
-        disabled: tagLocked,
-        icon: <SendOutlined />,
-        onClick: () => openMoveToModal?.({ groupId }),
-      },
-      {
-        key: 'copyLinks',
-        label: $fmt(actionMap['copyLinks'].labelKey),
-        icon: <CopyOutlined />,
-        onClick: handleCopyLinks,
-      },
-      {
-        key: 'clone',
-        label: $fmt(actionMap['clone'].labelKey),
-        disabled: tagLocked,
-        icon: <IconRepeat />,
-        onClick: handleGroupCopy,
-      },
-      {
-        key: 'dedup',
-        label: $fmt(actionMap['dedup'].labelKey),
-        icon: <BlockOutlined />,
-        disabled: tagLocked || isLocked,
-        onClick: () => setDedupModalVisible(true),
-      },
-      {
-        key: 'tabsSortAsc',
-        label: $fmt(actionMap['tabsSortAsc'].labelKey),
-        icon: <SortAscendingOutlined />,
-        disabled: tagLocked || isLocked,
-        onClick: () => handleTabsSort('ascending'),
-      },
-      {
-        key: 'tabsSortDesc',
-        label: $fmt(actionMap['tabsSortDesc'].labelKey),
-        icon: <SortDescendingOutlined />,
-        disabled: tagLocked || isLocked,
-        onClick: () => handleTabsSort('descending'),
-      },
-    ];
-
-    return btns.filter(item => {
-      const isAllowed = allowGroupActions.includes(item.key);
-      const isValid = item.validator?.() ?? true;
-      return isAllowed && isValid;
-    });
-  }, [
-    $fmt,
-    allowGroupActions,
-    tagLocked,
+  const { groupActions } = useGroupActions({
     groupId,
+    tagId,
+    tagLocked,
     isLocked,
     isStarred,
-    onRestore,
-    onChange,
-    onStarredChange,
-    openMoveToModal,
-    handleCopyLinks,
-    handleGroupCopy,
-    handleTabsSort,
-  ]);
-
-  const groupActions = useMemo(() => {
-    const settings = settingsUtils.settings;
-    const outerList: ActionOptionItem[] = [],
-      innerList: ActionOptionItem[] = [];
-
-    const groupActionBtnOptions = getGroupActionOptions();
-
-    groupActionBtnOptions.forEach(item => {
-      if (settings[GROUP_ACTION_BTNS_COMMONLY_USED]?.includes(item.key)) {
-        outerList.push(item);
-      } else {
-        innerList.push(item);
-      }
-    });
-
-    return { outerList, innerList };
-  }, [getGroupActionOptions]);
+    tabList,
+    allowGroupActions,
+    onAction: handleGroupAction,
+  });
 
   const selectedTabsActions: ActionOptionItem[] = useMemo(() => {
     const actionMap = tabsActionOptions.reduce(
@@ -502,7 +473,7 @@ function TabGroup({
         disabled: tagLocked || isLocked,
         onClick: handleSelectedTabsCopy,
       },
-    ].filter(item => allowTabActions.includes(item.key));
+    ].filter(item => allowTabActions.includes(item.key as TabActionName));
   }, [
     $fmt,
     allowTabActions,
@@ -559,75 +530,84 @@ function TabGroup({
         $bgColor={selected ? token.colorPrimaryBg : token.colorBgContainer}
         ref={groupRef}
       >
-        {/* 标签组 header 展示、操作区域 */}
-        <StyledGroupHeader className="group-header select-none">
-          <div className="group-header-top">
-            {(isLocked || isStarred) && (
-              <div className="group-status-wrapper">
-                {isLocked && (
-                  <LockFilled
-                    style={{ fontSize: '22px', color: token.colorPrimaryHover }}
-                  />
-                )}
-                {isStarred && (
-                  <StarFilled
-                    style={{ fontSize: '22px', color: token.colorPrimaryHover }}
-                  />
-                )}
+        {/* 标签组 header + tab 操作区域（sticky 置顶） */}
+        <StyledGroupStickyHeader
+          $bgColor={selected ? token.colorPrimaryBg : token.colorBgContainer}
+        >
+          <StyledGroupHeader className="group-header select-none">
+            <div className="group-header-top">
+              {(isLocked || isStarred) && (
+                <div className="group-status-wrapper">
+                  {isLocked && (
+                    <LockFilled
+                      style={{ fontSize: '22px', color: token.colorPrimaryHover }}
+                    />
+                  )}
+                  {isStarred && (
+                    <StarFilled
+                      style={{ fontSize: '22px', color: token.colorPrimaryHover }}
+                    />
+                  )}
+                </div>
+              )}
+              <div className="group-name-wrapper">
+                <EditInput
+                  value={groupName || UNNAMED_GROUP}
+                  disabled={
+                    !allowGroupActions.includes('rename') || tagLocked || isLocked
+                  }
+                  maxWidth={240}
+                  fontSize={20}
+                  iconSize={16}
+                  height={30}
+                  onValueChange={value =>
+                    onChange?.({ groupName: value || UNNAMED_GROUP })
+                  }
+                ></EditInput>
               </div>
-            )}
-            <div className="group-name-wrapper">
-              <EditInput
-                value={groupName || UNNAMED_GROUP}
-                disabled={!allowGroupActions.includes('rename') || tagLocked || isLocked}
-                maxWidth={240}
-                fontSize={20}
-                iconSize={16}
-                onValueChange={value => onChange?.({ groupName: value || UNNAMED_GROUP })}
-              ></EditInput>
+              <div className="group-info">
+                <span className="tab-count" style={{ color: ENUM_COLORS.volcano }}>
+                  {$fmt({
+                    id: 'home.tab.count',
+                    values: { count: tabList?.length || 0 },
+                  })}
+                </span>
+                <span className="group-create-time">{createTime || ''}</span>
+              </div>
             </div>
-            <div className="group-info">
-              <span className="tab-count" style={{ color: ENUM_COLORS.volcano }}>
-                {$fmt({
-                  id: 'home.tab.count',
-                  values: { count: tabList?.length || 0 },
-                })}
-              </span>
-              <span className="group-create-time">{createTime || ''}</span>
-            </div>
-          </div>
-          <ActionBtnList
-            actionBtnStyle={actionBtnStyle}
-            {...groupActions}
-          ></ActionBtnList>
-        </StyledGroupHeader>
+            <ActionBtnList
+              actionBtnStyle={actionBtnStyle}
+              {...groupActions}
+            ></ActionBtnList>
+          </StyledGroupHeader>
 
-        {/* tab 选择、操作区域 */}
-        {tabList?.length > 0 && (
-          <StyledTabActions>
-            <div className="checkall-wrapper">
-              <Checkbox
-                checked={isAllChecked}
-                indeterminate={checkAllIndeterminate}
-                disabled={tagLocked || isLocked}
-                onChange={handleSelectAll}
-              ></Checkbox>
-              <span
-                className="selected-count-text"
-                style={{ color: ENUM_COLORS.volcano }}
-              >
-                {`${selectedTabIds.length} / ${tabList?.length}`}
-              </span>
-            </div>
-            {selectedTabIds.length > 0 && (
-              <ActionBtnList
-                actionBtnStyle={actionBtnStyle}
-                outerList={selectedTabsActions}
-                iconSize={14}
-              ></ActionBtnList>
-            )}
-          </StyledTabActions>
-        )}
+          {/* tab 选择、操作区域 */}
+          {tabList?.length > 0 && (
+            <StyledTabActions>
+              <div className="checkall-wrapper">
+                <Checkbox
+                  checked={isAllChecked}
+                  indeterminate={checkAllIndeterminate}
+                  disabled={tagLocked || isLocked}
+                  onChange={handleSelectAll}
+                ></Checkbox>
+                <span
+                  className="selected-count-text"
+                  style={{ color: ENUM_COLORS.volcano }}
+                >
+                  {`${selectedTabIds.length} / ${tabList?.length}`}
+                </span>
+              </div>
+              {selectedTabIds.length > 0 && (
+                <ActionBtnList
+                  actionBtnStyle={actionBtnStyle}
+                  outerList={selectedTabsActions}
+                  iconSize={14}
+                ></ActionBtnList>
+              )}
+            </StyledTabActions>
+          )}
+        </StyledGroupStickyHeader>
 
         {/* tab 列表 */}
         <DropComponent
@@ -663,6 +643,7 @@ function TabGroup({
                         index,
                         groupId,
                         dndKey,
+                        from: 'tab-list',
                         selectedValues: selectedTabIds,
                         isDragging:
                           draggableState.type !== idleState.type &&
@@ -681,12 +662,14 @@ function TabGroup({
                         group={group}
                         {...tab}
                         highlight={
-                          tab.tabId != undefined &&
-                          treeDataHook?.highlightTabId === tab.tabId
+                          (tab.tabId != undefined &&
+                            treeDataHook?.highlightTabId === tab.tabId) ||
+                          quickSelectedTabIds.includes(tab.tabId)
                         }
                         onRemove={handleTabRemove}
                         onChange={handleTabChange}
                         onCopy={handleTabCopy}
+                        onQuickSelect={handleTabQuickSelect}
                       />
                     </DndComponent>
                   ))}

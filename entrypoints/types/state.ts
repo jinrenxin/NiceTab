@@ -1,4 +1,5 @@
-import type { SnapshotItem } from './tabList';
+import type { SearchEngine } from '~/entrypoints/types';
+import type { SnapshotItem, SnapshotRecord } from './tabList';
 
 export interface PermissionActionsProps {
   tabGroups: boolean;
@@ -10,7 +11,7 @@ export interface GlobalStateProps {
   permissionActions?: PermissionActionsProps;
   snapshotStatus?: 'on' | 'off';
   openedTabsManualSave?: SnapshotItem[];
-  openedTabsAutoSave?: SnapshotItem[];
+  openedTabsAutoSave?: SnapshotItem[] | SnapshotRecord;
   lastSelectedTargetValue?: string[];
 }
 
@@ -23,17 +24,26 @@ export interface SelectedKeysStoreItem {
 /* 首页状态 */
 export interface HomeStateProps {
   sidebarCollapsed?: boolean;
+  sidebarWidth?: number;
+  rightPanelCollapsed?: boolean;
+  rightPanelWidth?: number;
   selectedKeysStore?: SelectedKeysStoreItem[];
 }
 // Popup 面板状态
 export interface PopupStateProps {
-  isCompact?: boolean;
+  isCompact?: boolean; // 是否显示精简/紧凑模式
+  isShowPinnedTabs?: boolean; // 是否显示固定标签页
+}
+// newtab 页面状态
+export interface NewtabStateProps {
+  searchEngines?: SearchEngine[];
 }
 
 export interface StateProps {
   global: GlobalStateProps;
   home: HomeStateProps;
   popup: PopupStateProps;
+  newtab: NewtabStateProps;
 }
 
 export type StateModuleProps<K extends keyof StateProps = 'global'> = StateProps[K];

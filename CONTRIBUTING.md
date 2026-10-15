@@ -1,5 +1,9 @@
 # Contributing Guide
 
+<p>
+  English | <a href="./CONTRIBUTING-zh.md">中文</a> | <a href="./CONTRIBUTING-ru.md">Русский</a>
+</p>
+
 ## Submitting Code
 
 1. [Fork](https://github.com/web-dahuyou/NiceTab/fork) the repository.
@@ -14,7 +18,7 @@
    git checkout -b dev-your-awesome-code origin/dev
    ```
 4. Commit your changes (follow [commit message conventions](https://github.com/angular/angular/blob/main/contributing-docs/commit-message-guidelines.md)).
-  Note: Before committing, it is recommended to run the `pnpm compile` command to check the typescript types.
+  Note: Before committing, it is recommended to run the `pnpm compile` command to verify TypeScript types.
 
    ```bash
    pnpm compile
@@ -31,13 +35,25 @@
    https://github.com/web-dahuyou/NiceTab/compare/dev...${yourname}:NiceTab:dev-your-awesome-code
    ```
 
-## Project Setup
+## Development Guidelines
+
+### Project Setup
 - Install dependencies:  
   `pnpm install`
 - Start the dev server:  
   `pnpm run dev`
 
+### File Export Requirement
+
 Important: Each `.js .ts .tsx` file must have an `export default` statement. Otherwise, you'll encounter errors when running the local service.
+
+### Import Path Alias
+
+The project uses the `~` alias for imports from the `entrypoints` directory (the `@` alias also works but `~` is preferred for consistency).
+
+```ts
+import { something } from '~/entrypoints/common/utils';
+```
 
 ### Set Browser Binaries
 

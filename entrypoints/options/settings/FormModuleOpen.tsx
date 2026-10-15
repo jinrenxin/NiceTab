@@ -5,7 +5,7 @@ import { ENUM_SETTINGS_PROPS } from '~/entrypoints/common/constants';
 import { useIntlUtls } from '~/entrypoints/common/hooks/global';
 import { getKeysByOS } from '~/entrypoints/common/utils';
 import usePermission from '~/entrypoints/common/hooks/getPermission';
-import useTooltipOption from '@/entrypoints/common/hooks/tooltipOption';
+import useTooltipOption from '~/entrypoints/common/hooks/tooltipOption';
 
 const {
   RESTORE_IN_NEW_WINDOW,
@@ -38,7 +38,6 @@ export default function FormModuleOpen(
           values: { mark: '：' },
         })}
         name={RESTORE_IN_NEW_WINDOW}
-        {...formItemProps}
       >
         <Radio.Group>
           <Radio value={true}>{$fmt('common.yes')}</Radio>

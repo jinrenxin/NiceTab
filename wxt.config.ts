@@ -1,6 +1,7 @@
 import { defineConfig, type UserManifest } from 'wxt';
 import svgr from 'vite-plugin-svgr';
 import yargsParser from 'yargs-parser';
+// import { injectBgColorPlugin } from './scripts/inject-bg-color-plugin';
 
 const args = yargsParser(process.argv.slice(2));
 
@@ -11,7 +12,7 @@ export default defineConfig({
   // extensionApi: 'chrome',
   modules: ['@wxt-dev/module-react'],
   vite: () => ({
-    plugins: [svgr({ svgrOptions: { icon: true } })],
+    plugins: [svgr({ svgrOptions: { icon: true } }), /* injectBgColorPlugin() */],
   }),
   manifest: {
     name: 'Nice Tab Manager',
@@ -25,11 +26,12 @@ export default defineConfig({
       ...(isFirefox ? [] : ['tabGroups', 'commands', 'favicon']),
     ],
     optional_permissions: [
-      "tabGroups"
+      ...(isFirefox ? ["tabGroups"] : []),
     ],
     homepage_url: 'https://github.com/web-dahuyou/NiceTab',
     host_permissions: ['<all_urls>'],
     default_locale: 'zh_CN',
+    incognito: isFirefox ? 'spanning' : 'split',
     content_security_policy: isFirefox
       ? {
           extension_pages: "script-src 'self'; object-src 'self';",
@@ -90,6 +92,9 @@ export default defineConfig({
       },
       'action:hibernateTabs': {
         description: '__MSG_action_hibernateTabs__',
+      },
+      'action:createSnapshot': {
+        description: '__MSG_action_createSnapshot__',
       },
       // 激活option面板
       _execute_action: {

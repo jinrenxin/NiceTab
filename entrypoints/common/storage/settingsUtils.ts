@@ -1,19 +1,22 @@
 // import { storage } from 'wxt/storage';
 import type {
-  LanguageTypes,
   SettingsProps,
   PageWidthTypes,
   ActionBtnStyle,
   InsertPositions,
   OpeningTabsOrder,
+  NewTabDisplayTypes,
+  SearchEngine,
 } from '~/entrypoints/types';
 import {
   ENUM_SETTINGS_PROPS,
   POPUP_MODULE_NAMES,
   defaultLanguage,
+  resolveLanguage,
   defaultThemeType,
   DEFAULT_EXCLUDE_DOMAINS,
   defaultContextmenuConfigList,
+  DEFAULT_SEARCH_ENGINES,
   defaultAutoSyncType,
   defaultAutoSyncTimeUnit,
   defaultAutoSyncRelation,
@@ -36,6 +39,7 @@ const {
   OPEN_ADMIN_TAB_AFTER_SEND_TABS,
   CLOSE_TABS_AFTER_SEND_TABS,
   ACTION_AUTO_CLOSE_FLAGS,
+  CREATE_NEW_GROUP_ON_SEND_SINGLE_TAB,
   ALLOW_DUPLICATE_TABS,
   ALLOW_DUPLICATE_GROUPS,
   /* 打开标签页配置 */
@@ -54,6 +58,7 @@ const {
   /* 其他操作配置 */
   DELETE_UNLOCKED_EMPTY_GROUP,
   CONFIRM_BEFORE_DELETING_TABS,
+  CONFIRM_BEFORE_DELETING_GROUPS,
   LINK_TEMPLATE,
   TAB_COUNT_THRESHOLD,
   GROUP_INSERT_POSITION,
@@ -68,6 +73,8 @@ const {
   AUTO_EXPAND_HOME_TREE,
   MAIN_CONTENT_WIDTH_TYPE,
   SHOW_TAB_TITLE_TOOLTIP,
+  NEW_TAB_DISPLAY,
+  SEARCH_ENGINES,
   /* 同步配置 */
   REMOTE_SYNC_WITH_SETTINGS,
   AUTO_SYNC,
@@ -94,6 +101,7 @@ export default class SettingsUtils {
     [OPEN_ADMIN_TAB_AFTER_SEND_TABS]: true, // 发送标签页后默认打开管理后台
     [CLOSE_TABS_AFTER_SEND_TABS]: true, // 发送标签页后是否关闭标签页
     [ACTION_AUTO_CLOSE_FLAGS]: [], // 各种操作的自动关闭标签页标志
+    [CREATE_NEW_GROUP_ON_SEND_SINGLE_TAB]: true, // 发送单个标签页时是否创建新的标签组
     [ALLOW_DUPLICATE_TABS]: true, // 同一个标签组中是否允许重复的标签页
     [ALLOW_DUPLICATE_GROUPS]: true, // 同一个分类中是否允许重复的标签组
     /* 打开标签页配置 */
@@ -112,6 +120,7 @@ export default class SettingsUtils {
     /* 其他操作配置 */
     [DELETE_UNLOCKED_EMPTY_GROUP]: true, // 是否删除未锁定的空标签组
     [CONFIRM_BEFORE_DELETING_TABS]: false, // 删除标签页前是否需要确认
+    [CONFIRM_BEFORE_DELETING_GROUPS]: true, // 删除标签组前是否需要确认
     [LINK_TEMPLATE]: '{{url}} | {{title}}', // 复制的链接模板
     [TAB_COUNT_THRESHOLD]: 100, // 分类中标签页超过该数量时，则右侧面板开启虚拟滚动
     [GROUP_INSERT_POSITION]: 'top' as InsertPositions, // 标签组插入位置：在分类的标签组列表顶部还是底部
@@ -124,8 +133,12 @@ export default class SettingsUtils {
     [CONTEXT_MENU_CONFIG]: defaultContextmenuConfigList, // 右键菜单配置
     [POPUP_MODULE_DISPLAYS]: POPUP_MODULE_NAMES, // popup面板中需要展示的模块
     [AUTO_EXPAND_HOME_TREE]: false, // 进入列表页时，是否自动展开全部节点
-    [MAIN_CONTENT_WIDTH_TYPE]: 'fixed' as PageWidthTypes, // 主内容区域宽度类型
+    [MAIN_CONTENT_WIDTH_TYPE]: 'resonsive' as PageWidthTypes, // 主内容区域宽度类型
     [SHOW_TAB_TITLE_TOOLTIP]: false, // 是否显示标签页标题的tooltip
+    /* 新标签页配置 */
+    [NEW_TAB_DISPLAY]: 'default' as NewTabDisplayTypes, // 新标签页显示方式
+    [SEARCH_ENGINES]: DEFAULT_SEARCH_ENGINES as SearchEngine[], // 搜索引擎配置
+
     /* 同步配置 */
     [REMOTE_SYNC_WITH_SETTINGS]: true, // 远程同步时，偏好设置是否一起同步
     [AUTO_SYNC]: false, // 是否开启自动同步
@@ -144,12 +157,13 @@ export default class SettingsUtils {
   async getSettings() {
     const settings = await storage.getItem<SettingsProps>(this.storageKey);
     const _savedBefore = !!settings;
+    const language = resolveLanguage(settings?.language || navigator?.language);
     this.settings = {
       ...this.initialSettings,
-      language: (navigator?.language as LanguageTypes) || defaultLanguage,
       ...settings,
+      language,
     };
-    if (!_savedBefore) {
+    if (!_savedBefore || settings?.language !== language) {
       this.setSettings(this.settings);
     }
     return this.settings;

@@ -43,7 +43,7 @@ export default function SyncConfigFormGist({ onChange }: SyncConfigFormProps) {
         <SyncConfigFormItem form={form} type="github"></SyncConfigFormItem>
         <SyncConfigFormItem form={form} type="gitee"></SyncConfigFormItem>
 
-        <Form.Item>
+        <Form.Item style={{ marginTop: '24px' }}>
           <Button type="primary" htmlType="submit">
             {$fmt('common.save')}
           </Button>

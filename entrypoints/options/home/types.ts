@@ -24,7 +24,7 @@ export type TreeDataNodeUnion = TreeDataNodeTag | TreeDataNodeTabGroup;
 export type RenderTreeNodeActionProps = {
   actionType: 'tag' | 'tabGroup';
   node: TreeDataNodeUnion;
-  actionName: 'create' | 'remove' | 'rename' | 'moveTo';
+  actionName: TagActionName | GroupActionName;
   data?: Partial<TagItem | GroupItem>;
 };
 export type RenderTreeNodeProps = {
@@ -68,10 +68,17 @@ export type CascaderOption = {
   parentKey?: string;
 } & Record<string, any>;
 
+export type DragActionType =
+  | 'tab2tab'
+  | 'tab2group'
+  | 'opened2tab'
+  | 'opened2group'
+  | 'opened2tag';
+
 // 拖拽tab数据
 export type DndTabItemProps = TabItem &
   DragData & {
-    groupId: string;
+    groupId: string | number;
     index: number;
     dndKey: symbol;
     isEmpty?: boolean; // 空标签组，默认设置一个空标签，便于拖拽
@@ -82,15 +89,44 @@ export type DndTabItemOnDropCallback = ({
   sourceIndex,
   targetIndex,
   actionType,
-  targetTabListLength,
 }: {
   sourceData: Pick<DndTabItemProps, 'groupId' | 'index'> & DragData;
   targetData: Pick<DndTabItemProps, 'groupId' | 'index'> & DragData;
   sourceIndex: number;
   targetIndex: number;
-  actionType?: 'tab2tab' | 'tab2group';
-  targetTabListLength?: number;
+  actionType?: DragActionType;
 }) => void;
 
-// 标签组操作 remove-删除 rename-重命名 restore-恢复 lock-锁定 star-星标 recover-从回收站复原到列表页
-export type GroupActions = 'remove' | 'rename' | 'restore' | 'lock' | 'star' | 'recover';
+// 分类操作
+export type TagActionName =
+  | 'create'
+  | 'remove'
+  | 'rename'
+  | 'restore'
+  | 'lock'
+  | 'moveTo'
+  | 'sortByNameAsc'
+  | 'sortByNameDesc'
+  | 'sortByCreateTimeAsc'
+  | 'sortByCreateTimeDesc';
+
+// 标签组操作
+// remove-删除 rename-重命名 restore-恢复 lock-锁定 star-星标 recover-从回收站复原到列表页 clone-克隆 copyLinks-复制链接 dedup-去重
+// moveTo-移动/发送到 tabsSortAsc-标签组内排序升序 tabsSortDesc-标签组内排序降序 addGroupBefore-在当前标签组前添加一个标签组 addGroupAfter-在当前标签组后添加一个标签组
+export type GroupActionName =
+  | 'remove'
+  | 'rename'
+  | 'restore'
+  | 'lock'
+  | 'star'
+  | 'clone'
+  | 'copyLinks'
+  | 'dedup'
+  | 'moveTo'
+  | 'tabsSortAsc'
+  | 'tabsSortDesc'
+  | 'addGroupBefore'
+  | 'addGroupAfter';
+
+// 标签页操作
+export type TabActionName = 'open' | 'remove' | 'clone' | 'copyLinks' | 'moveTo';

@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useEffect } from 'react';
 import { Tabs } from 'wxt/browser';
-import { CloseOutlined, CoffeeOutlined } from '@ant-design/icons';
+import { CloseOutlined, CoffeeOutlined, PushpinFilled } from '@ant-design/icons';
 import { classNames } from '~/entrypoints/common/utils';
 import { useIntlUtls } from '~/entrypoints/common/hooks/global';
 import Favicon from '~/entrypoints/common/components/Favicon';
@@ -46,12 +46,13 @@ export default function TabItem({ tab, onAction }: TabItemProps) {
       title={tab.title}
       onClick={event => handleAction(event, 'active')}
     >
+      {tab.pinned && <PushpinFilled style={{ marginRight: '8px' }} />}
       <Favicon pageUrl={tab.url!} favIconUrl={tab.favIconUrl}></Favicon>
       <span className="tab-item-title">{tab.title}</span>
 
       {!tab.active && (
         <StyledActionIconBtn
-          className={classNames('action-icon-btn', tab.discarded && 'btn-discarded')}
+          className={classNames('action-icon-btn', tab.discarded && 'disabled')}
           $size={16}
           title={$fmt(tab.discarded ? 'common.hibernated' : 'common.hibernate')}
           onClick={event => handleAction(event, 'discard')}

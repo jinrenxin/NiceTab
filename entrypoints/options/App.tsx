@@ -13,7 +13,8 @@ import {
   Space,
   Tooltip,
   Typography,
-  FloatButton,
+  Button,
+  Modal,
   type MenuProps,
 } from 'antd';
 import {
@@ -37,6 +38,8 @@ import {
   RollbackOutlined,
   SearchOutlined,
   ReadOutlined,
+  HistoryOutlined,
+  ToTopOutlined,
 } from '@ant-design/icons';
 import styled, { ThemeProvider } from 'styled-components';
 import '~/assets/css/reset.css';
@@ -51,7 +54,7 @@ import {
 } from '~/entrypoints/common/constants';
 import { actionHandler } from '../common/contextMenus';
 import { GlobalContext, useIntlUtls } from '~/entrypoints/common/hooks/global';
-import useMenus from '@/entrypoints/common/hooks/menu';
+import useMenus from '~/entrypoints/common/hooks/menu';
 import { settingsUtils } from '~/entrypoints/common/storage';
 import useUpdate from '~/entrypoints/common/hooks/update';
 import usePermission from '~/entrypoints/common/hooks/getPermission';
@@ -66,8 +69,8 @@ import {
   openNewTab,
   discardOtherTabs,
   saveOpenedTabsAsSnapshot,
-  restoreOpenedTabsSnapshot,
   openUserGuide,
+  openChangelog,
 } from '~/entrypoints/common/tabs';
 import {
   StyledActionIconBtn,
@@ -84,6 +87,7 @@ import Settings from './settings/index.tsx';
 import ImportExport from './importExport/index.tsx';
 import SyncPage from './sync/index.tsx';
 import RecycleBin from './recycleBin/index.tsx';
+import SnapshotsPage from './snapshots/index.tsx';
 import SendTargetActionHolder, {
   type SendTargetActionHolderProps,
 } from '~/entrypoints/options/home/SendTargetActionHolder';
@@ -131,18 +135,45 @@ const StyledPageContainer = styled.div<{
   }
   .main-content {
     position: relative;
+    box-sizing: border-box;
     width: 1200px;
     padding: 100px 32px 40px;
     margin: 0 auto;
+  }
+  .float-button-box {
+    position: fixed;
+    z-index: 10;
+    bottom: 24px;
+    right: 30px;
+    display: flex;
+    gap: 16px;
   }
   @media screen and (max-width: 1199px) {
     .main-content {
       max-width: 100%;
     }
   }
+  @media screen and (max-width: 720px) {
+    .navbar-menu {
+      min-width: 0;
+      margin-left: 0;
+    }
+    .menu-right {
+      padding: 0 10px;
+    }
+    .header-version,
+    .header-theme,
+    .header-theme-type,
+    .header-language,
+    .header-github {
+      display: none;
+    }
+  }
   @media screen and (min-width: 1200px) {
     .main-content {
-      width: ${props => (props.$widthType === 'fixed' ? '1200px' : '100%')};
+      width: 100%;
+      /* 不再固定宽度 */
+      // width: ${props => (props.$widthType === 'fixed' ? '1200px' : '100%')};
     }
   }
 `;
@@ -169,6 +200,13 @@ const navsTemplate: NavProps[] = [
     path: '/settings',
     icon: <SettingOutlined />,
     element: <Settings />,
+  },
+  {
+    key: 'snapshots',
+    label: 'snapshots.title',
+    path: '/snapshots',
+    icon: <CameraOutlined />,
+    element: <SnapshotsPage />,
   },
   {
     key: 'import-export',
@@ -298,6 +336,11 @@ function AppLayout() {
           label: $fmt('common.userGuide'),
         },
         {
+          key: 'changelog',
+          icon: <HistoryOutlined />,
+          label: $fmt('common.changelog'),
+        },
+        {
           key: 'bindShortcuts',
           icon: <KeyOutlined />,
           label: $fmt('common.bindShortcuts'),
@@ -326,6 +369,8 @@ function AppLayout() {
       browser.runtime.reload();
     } else if (key === 'userGuide') {
       openUserGuide();
+    } else if (key === 'changelog') {
+      openChangelog();
     } else if (key === 'bindShortcuts') {
       openNewTab(SHORTCUTS_PAGE_URL, {
         active: true,
@@ -334,10 +379,13 @@ function AppLayout() {
     } else if (key === 'hibernateTabs') {
       discardOtherTabs();
     } else if (key === 'createSnapshot') {
-      await saveOpenedTabsAsSnapshot('manualSave');
-      $message.success($fmt('common.saveSuccess'));
+      const result = await saveOpenedTabsAsSnapshot('manualSave');
+      if (result?.saved) {
+        $message.success($fmt('snapshots.created'));
+        navigate('/snapshots');
+      }
     } else if (key === 'restoreSnapshot') {
-      await restoreOpenedTabsSnapshot('manualSave');
+      navigate('/snapshots');
     } else if (key === 'startSync') {
       actionHandler(ENUM_ACTION_NAME.START_SYNC);
     }
@@ -401,7 +449,7 @@ function AppLayout() {
           )}
 
           <Space className="menu-right select-none" align="center" size="middle">
-            <div>
+            <div className="header-version">
               {$fmt('common.version')}: {version}
             </div>
             {/* theme */}
@@ -419,12 +467,13 @@ function AppLayout() {
               arrow={false}
               fresh
             >
-              <StyledActionIconBtn $size={18}>
+              <StyledActionIconBtn className="header-theme" $size={18}>
                 <IconTheme></IconTheme>
               </StyledActionIconBtn>
             </Tooltip>
             {/* theme type */}
             <StyledActionIconBtn
+              className="header-theme-type"
               $size={18}
               title={$fmt('common.toggleThemeType')}
               onClick={handleThemeTypeChange}
@@ -442,7 +491,7 @@ function AppLayout() {
               }}
               placement="bottomRight"
             >
-              <StyledActionIconBtn $size={18}>
+              <StyledActionIconBtn className="header-language" $size={18}>
                 <TranslationOutlined />
               </StyledActionIconBtn>
             </Dropdown>
@@ -453,12 +502,13 @@ function AppLayout() {
                 onClick: handleExtActionClick,
               }}
             >
-              <StyledActionIconBtn $size={18}>
+              <StyledActionIconBtn className="header-actions" $size={18}>
                 <MenuOutlined />
               </StyledActionIconBtn>
             </Dropdown>
             {/* github */}
             <StyledActionIconBtn
+              className="header-github"
               $size={18}
               title={$fmt('common.goToGithub')}
               onClick={() => openNewTab(GITHUB_URL, { active: true, openToNext: true })}
@@ -471,19 +521,29 @@ function AppLayout() {
           <Outlet></Outlet>
         </div>
 
-        {/* 回到顶部 */}
-        <FloatButton.Group shape="circle" style={{ right: 30, bottom: 90 }}>
-          {/* BackTop组件自带的 tooltip 在点击按钮时会闪 */}
-          <span title={$fmt('common.backToTop')}>
-            <FloatButton.BackTop duration={100} visibilityHeight={400} />
-          </span>
-          <span title={$fmt('common.sendAllTabs')}>
-            <FloatButton icon={<SendOutlined />} onClick={handleSendAllTabs} />
-          </span>
-          <span title={$fmt('home.searchTabAndUrl')}>
-            <FloatButton icon={<SearchOutlined />} onClick={openGlobalSearchPanel} />
-          </span>
-        </FloatButton.Group>
+        <div className="float-button-box">
+          {/* 回到顶部 */}
+          <Button
+            shape="circle"
+            icon={<ToTopOutlined />}
+            title={$fmt('common.backToTop')}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          />
+
+          <Button
+            shape="circle"
+            icon={<SearchOutlined />}
+            title={$fmt('home.searchTabAndUrl')}
+            onClick={openGlobalSearchPanel}
+          />
+
+          <Button
+            shape="circle"
+            icon={<SendOutlined />}
+            title={$fmt('common.sendAllTabs')}
+            onClick={handleSendAllTabs}
+          />
+        </div>
       </StyledPageContainer>
     </ThemeProvider>
   );
