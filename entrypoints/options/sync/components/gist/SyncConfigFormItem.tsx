@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import type { ReactElement } from 'react';
-import { theme, Flex, Typography, Divider, Form, Input } from 'antd';
+import { theme, Flex, Typography, Divider, Form, Input, Switch } from 'antd';
 import { LinkOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import type { InputRef, FormInstance } from 'antd';
 import styled from 'styled-components';
@@ -87,14 +87,30 @@ export default function SyncConfigFormItem({ form, type }: SyncConfigFormItemPro
             }
           />
         </Form.Item>
+        <Form.Item<SyncConfigProps>
+          name={[type, 'bakFilename']}
+          label={$fmt('sync.bakFilename')}
+          tooltip={getFormTooltipOption({ title: $fmt('sync.tip.bakFilenameGists') })}
+        >
+          <Input
+            placeholder="__NiceTab_gist_key_bak__"
+            onChange={e =>
+              form?.setFieldsValue({
+                [type]: {
+                  bakFileName: e.target.value?.trim(),
+                },
+              })
+            }
+          />
+        </Form.Item>
 
-        {/* <Form.Item<SyncConfigProps>
+        <Form.Item<SyncConfigProps>
           label={$fmt('sync.autoSync')}
           name={[type, 'autoSync']}
-          tooltip={getFormTooltipOption({ title: $fmt('common.comingSoon') })}
+          style={{ marginBottom: 0 }}
         >
-          <Switch disabled />
-        </Form.Item> */}
+          <Switch />
+        </Form.Item>
       </Flex>
     </>
   );

@@ -8,6 +8,7 @@ import type {
   LanguageTypes,
   ThemeTypeConfig,
   IntlForamtMessageParams,
+  PageContextType,
   ThemeTypes,
 } from '~/entrypoints/types';
 import { settingsUtils, themeUtils } from '~/entrypoints/common/storage';
@@ -27,7 +28,7 @@ export const GlobalContext = createContext<GlobalContextProps>({
   colorPrimary: PRIMARY_COLOR,
   themeTypeConfig: THEME_TYPE_CONFIG[defaultThemeType],
   themeType: defaultThemeType,
-  pageWidthType: 'fixed',
+  pageWidthType: 'responsive',
   pageContext: 'optionsPage',
   $message: (() => {}) as any,
   setThemeType: async (themeType = defaultThemeType) => {
@@ -43,7 +44,7 @@ export const GlobalContext = createContext<GlobalContextProps>({
     settingsUtils.setSettings({ ...settingsUtils.settings, language });
     callback?.();
   },
-  setPageWidthType: async (pageWidthType = 'fixed') => {
+  setPageWidthType: async (pageWidthType = 'responsive') => {
     settingsUtils.setSettings({ ...settingsUtils.settings, pageWidthType });
   },
 });
@@ -97,8 +98,16 @@ export function useCustomLocale() {
   return { messages, locale, changeLocale };
 }
 
+const THEME_TYPE_STORAGE_KEY = 'nicetab-theme-type';
+
+function syncThemeTypeToLocalStorage(type: ThemeTypes) {
+  try {
+    localStorage.setItem(THEME_TYPE_STORAGE_KEY, type);
+  } catch (e) {}
+}
+
 // theme type (light | dark | auto)
-export function useThemeTypeConfig() {
+export function useThemeTypeConfig(pageContext?: PageContextType) {
   const [themeType, setThemeType] = useState<ThemeTypes>(defaultThemeType);
   const [themeTypeConfig, setThemeTypeConfig] = useState<ThemeTypeConfig>(
     THEME_TYPE_CONFIG.light,
@@ -118,6 +127,15 @@ export function useThemeTypeConfig() {
     }
 
     setThemeTypeConfig({ ...config });
+    syncThemeTypeToLocalStorage(type);
+
+    if (pageContext === 'contentScriptPage') return;
+
+    const el = document.documentElement;
+    if (el) {
+      el.style.setProperty('--bg-color', config.bgColor);
+      el.style.backgroundColor = config.bgColor;
+    }
   };
 
   const changeThemeType = async (themeType: ThemeTypes = defaultThemeType) => {

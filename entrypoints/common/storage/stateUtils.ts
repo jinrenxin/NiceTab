@@ -19,6 +19,10 @@ export default class StateUtils {
     },
     popup: {
       isCompact: true,
+      isShowPinnedTabs: false,
+    },
+    newtab: {
+      searchEngines: [],
     },
   };
   state: StateProps = this.initialState;

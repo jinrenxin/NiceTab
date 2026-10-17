@@ -64,6 +64,10 @@ export default function FormModulePageTitleConfig(
         label: $fmt('common.regex'),
         value: 'regex',
       },
+      {
+        label: $fmt('common.wildcard'),
+        value: 'wildcard',
+      },
     ];
   }, [$fmt]);
 

@@ -51,6 +51,20 @@ export function objectToUrlParams(params: Record<string, any>): string {
   return searchParams.toString();
 }
 
+/**
+ * 将通配符模式转换为正则表达式
+ * @param {string} pattern - 通配符模式
+ * @returns {RegExp} 正则表达式
+ */
+function wildcardToRegExp(pattern: string) {
+  // 转义正则中的特殊字符，除了 * 和 ?
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  // 将 * 替换为 .*，将 ? 替换为 .
+  const regexStr = '^' + escaped.replace(/\*/g, '.*').replace(/\?/g, '.') + '$';
+
+  return new RegExp(regexStr, 'i'); // 不区分大小写
+}
+
 // 获取origin
 export function getOrigin(url: string): string {
   let pageOrigin = url;
@@ -105,10 +119,15 @@ export function isDomainAllowed(
       ?.split(' ')
       ?.filter(Boolean);
     const baseUrl = url?.split('?')?.[0] || url;
-    for (let domain of excludeDomainList) {
-      const reg = new RegExp(domain);
-      if (reg.test(baseUrl)) {
-        return false;
+    for (let pattern of excludeDomainList) {
+      try {
+        const reg = new RegExp(pattern);
+        if (reg.test(baseUrl)) {
+          return false;
+        }
+      } catch (e) {
+        const reg = wildcardToRegExp(pattern);
+        if (reg.test(url)) return false;
       }
     }
   }
@@ -169,31 +188,53 @@ export function isSameUrl(url1: string, url2: string): boolean {
 /**
  * @description: 判断url在指定模式下是否匹配
  * @param {string} url 链接
- * @param {string} des 描述内容
+ * @param {string} pattern 描述内容
  * @param {ContentMatchMode} mode 匹配模式
  * @return {boolean} 是否匹配
  */
 export function isContentMatched(
   url: string,
-  des: string,
+  pattern: string,
   mode: ContentMatchMode = 'equal',
 ): boolean {
   try {
     if (mode === 'equal') {
-      return isSameUrl(url, des);
+      return isSameUrl(url, pattern);
     } else if (mode === 'startsWith') {
-      return url.startsWith(des);
+      return url.startsWith(pattern);
     } else if (mode === 'endsWith') {
-      return url.endsWith(des);
+      return url.endsWith(pattern);
     } else if (mode === 'contains') {
-      return url.includes(des);
+      return url.includes(pattern);
     } else if (mode === 'regex') {
-      return new RegExp(des).test(url);
+      return new RegExp(pattern).test(url);
+    } else if (mode === 'wildcard') {
+      const reg = wildcardToRegExp(pattern);
+      return reg.test(url);
     } else {
       return false;
     }
   } catch (e) {
     return false;
+  }
+}
+
+/**
+ * @description: 判断字符串是否为有效的URL
+ * @param {string} str 待检测的字符串
+ * @return {boolean} 是否为URL
+ */
+export function isUrl(str: string): boolean {
+  try {
+    new URL(str);
+    return true;
+  } catch {
+    try {
+      new URL('https://' + str);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -204,4 +245,5 @@ export default {
   getOrigin,
   getBaseDomain,
   isSameUrl,
+  isUrl,
 };

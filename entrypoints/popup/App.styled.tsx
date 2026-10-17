@@ -104,9 +104,21 @@ export const StyledContainer = styled.div<{ theme: StyledThemeProps }>`
     }
   }
   .tab-list-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 12px;
     font-size: 14px;
     font-weight: bold;
+  }
+  .pinned-tabs-switch-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    &.compact {
+      padding-bottom: 8px;
+    }
   }
   .block-opened-tabs {
     flex: 1;
@@ -145,18 +157,23 @@ export const StyledGroupWrapper = styled.div<{ $color?: string }>`
       color: ${props => props.theme.colorText || '#000'};
       ${StyledEllipsis}
     }
+    .group-actions {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
   }
   .tab-list {
     display: block;
     .tab-list-item {
       position: relative;
-      padding-left: 24px;
+      padding-left: 28px;
       .group-color-flag {
         position: absolute;
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        left: 16px;
+        left: 14px;
         top: 50%;
         transform: translateY(-50%);
         background-color: ${props => props.$color || 'transparent'};
@@ -174,7 +191,7 @@ export const StyledTabItem = styled.div`
   position: relative;
   display: flex;
   align-items: center;
-  padding: 6px 10px;
+  padding: 6px 8px;
   cursor: pointer;
   &:hover,
   &.active {

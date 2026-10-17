@@ -22,6 +22,7 @@ const ListItem = memo(
       handleSelect,
       refreshTreeData,
       handleTabGroupRemove,
+      handleTabGroupCreate,
       handleTabGroupChange,
       handleTabGroupStarredChange,
       handleTabGroupDedup,
@@ -29,7 +30,7 @@ const ListItem = memo(
       handleTabGroupRestore,
     } = treeDataHook;
 
-    const settings = settingsUtils.settings || {};
+    // const settings = settingsUtils.settings || {};
 
     // 移动单个标签组
     const handleTabGroupMoveTo = async ({
@@ -76,9 +77,11 @@ const ListItem = memo(
         //   !virtual && tabGroup.key === selectedTabGroupKey ? refreshKey : undefined
         // }
         {...tabGroup?.originData}
-        actionBtnStyle={settings.groupActionBtnStyle || 'text'}
+        // actionBtnStyle={settings.groupActionBtnStyle || 'icon'}
+        actionBtnStyle="icon"
         onChange={data => handleTabGroupChange(tabGroup, data)}
         onRemove={() => handleTabGroupRemove(tabGroup)}
+        onCreate={handleTabGroupCreate}
         onRestore={() => handleTabGroupRestore(tabGroup)}
         onStarredChange={isStarred => handleTabGroupStarredChange(tabGroup, isStarred)}
         onDedup={() => handleTabGroupDedup(tabGroup)}

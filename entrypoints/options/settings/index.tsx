@@ -23,7 +23,6 @@ import { reloadOtherAdminPage } from '~/entrypoints/common/tabs';
 // import StickyFooter from '~/entrypoints/common/components/StickyFooter';
 
 import SidebarBaseBtn from '~/entrypoints/options/components/SidebarBaseBtn';
-import ToggleSidebarBtn from '../components/ToggleSidebarBtn';
 
 import FormModuleCommon from './FormModuleCommon';
 import FormModuleSend from './FormModuleSend';
@@ -32,6 +31,7 @@ import FormModulePageTitle from './FormModulePageTitleConfig';
 import FormModuleGlobalSearch from './FormModuleGlobalSearch';
 import FormModuleOtherActions from './FormModuleOtherActions';
 import FormModuleDisplay from './FormModuleDisplay';
+import FormModuleNewtab from './FormModuleNewtab';
 import FormModuleSync from './FormModuleSync';
 import {
   StyledSidebarWrapper,
@@ -55,58 +55,60 @@ export default function Settings() {
   const { $fmt, locale } = useIntlUtls();
   const [messageApi, msgContextHolder] = message.useMessage();
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(240);
   const { token } = theme.useToken();
 
   const onCollapseChange = (status: boolean) => {
     setSidebarCollapsed(status);
+  };
+  const onSidebarWidthChange = (width: number) => {
+    setSidebarWidth(width);
   };
 
   const [form] = Form.useForm();
 
   const [currModule, setCurrModule] = useState<string>('common');
   const blockModuleOptions: MenuItem[] = useMemo(() => {
-    return [
+    const _options: MenuItem[] = [
       {
         key: 'common',
         label: $fmt('settings.block.common'),
-        icon: <SettingOutlined />,
       },
       {
         key: 'sendTabs',
         label: $fmt('settings.block.sendTabs'),
-        icon: <SettingOutlined />,
       },
       {
         key: 'openTabs',
         label: $fmt('settings.block.openTabs'),
-        icon: <SettingOutlined />,
       },
       {
         key: 'pageTitleConfig',
         label: $fmt('settings.block.pageTitleConfig'),
-        icon: <SettingOutlined />,
-      },
-      {
-        key: 'globalSearch',
-        label: $fmt('settings.block.globalSearch'),
-        icon: <SettingOutlined />,
       },
       {
         key: 'otherActions',
         label: $fmt('settings.block.otherActions'),
-        icon: <SettingOutlined />,
       },
       {
         key: 'display',
         label: $fmt('settings.block.display'),
-        icon: <SettingOutlined />,
+      },
+      {
+        key: 'newtab',
+        label: $fmt('settings.block.newtab'),
       },
       {
         key: 'sync',
         label: $fmt('settings.block.sync'),
-        icon: <SettingOutlined />,
+      },
+      {
+        key: 'globalSearch',
+        label: $fmt('settings.block.globalSearch'),
       },
     ];
+
+    return _options.map(item => ({ ...item, icon: <SettingOutlined /> }) as MenuItem);
   }, [$fmt]);
 
   const onModuleChange: MenuProps['onClick'] = e => {
@@ -216,46 +218,44 @@ export default function Settings() {
       </Modal>
       <StyledMainWrapper
         className={classNames('sync-wrapper', sidebarCollapsed && 'collapsed')}
-        $collapsed={sidebarCollapsed}
-        $sidebarWidth={240}
+        style={
+          {
+            '--sidebar-grid-col': `${sidebarCollapsed ? 0 : sidebarWidth}px`,
+            '--right-panel-grid-col': '0px',
+          } as React.CSSProperties
+        }
       >
         <StyledSidebarWrapper
           className="sidebar"
-          $collapsed={sidebarCollapsed}
-          $sidebarWidth={240}
-        >
-          <div
-            className={classNames('sidebar-inner-box', sidebarCollapsed && 'collapsed')}
-          >
-            <div className="sidebar-action-box">
-              <ToggleSidebarBtn
-                collapsed={sidebarCollapsed}
-                onCollapseChange={onCollapseChange}
+          collapsed={sidebarCollapsed}
+          sidebarWidth={sidebarWidth}
+          initialWidth={240}
+          onCollapseChange={onCollapseChange}
+          onWidthChange={onSidebarWidthChange}
+          sideActionBox={
+            <Badge
+              dot={hasChanged}
+              status="processing"
+              color={token.colorPrimary}
+              offset={[-4, 4]}
+            >
+              <SidebarBaseBtn
+                title={$fmt('common.save')}
+                icon={<SaveOutlined />}
+                blink={hasChanged}
+                onClick={handleSave}
               />
-              <Badge
-                dot={hasChanged}
-                status="processing"
-                color={token.colorPrimary}
-                offset={[-4, 4]}
-              >
-                <SidebarBaseBtn
-                  title={$fmt('common.save')}
-                  icon={<SaveOutlined />}
-                  blink={hasChanged}
-                  onClick={handleSave}
-                />
-              </Badge>
-            </div>
-            <div className="sidebar-inner-content">
-              <Menu
-                selectedKeys={[currModule]}
-                mode="vertical"
-                items={blockModuleOptions}
-                onClick={onModuleChange}
-              />
-            </div>
-          </div>
-        </StyledSidebarWrapper>
+            </Badge>
+          }
+          innerContent={
+            <Menu
+              selectedKeys={[currModule]}
+              mode="vertical"
+              items={blockModuleOptions}
+              onClick={onModuleChange}
+            />
+          }
+        />
         <div className="main-content-wrapper settings-wrapper">
           <Form
             form={form}
@@ -286,6 +286,9 @@ export default function Settings() {
 
             {/* ******************* 展示相关设置 ******************* */}
             <FormModuleDisplay hidden={currModule !== 'display'} form={form} />
+
+            {/* ******************* 新标签页相关设置 ******************* */}
+            <FormModuleNewtab hidden={currModule !== 'newtab'} form={form} />
 
             {/* ******************* 远程同步相关设置 ******************* */}
             <FormModuleSync hidden={currModule !== 'sync'} form={form} />

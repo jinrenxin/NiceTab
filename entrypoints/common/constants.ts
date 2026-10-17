@@ -18,12 +18,14 @@ import type {
   ColorItem,
   ThemeColors,
   TabEvents,
+  TabGroupEvents,
   SyncType,
   AutoSyncType,
   AutoSyncTimeUnits,
   TimeRange,
   PopupModuleNames,
   PageContextType,
+  SearchEngine,
 } from '~/entrypoints/types';
 export * from './envVars';
 
@@ -32,16 +34,16 @@ export const GITHUB_URL = 'https://github.com/web-dahuyou/NiceTab';
 
 // 主题列表（供切换选择）
 export const ENUM_COLORS = {
-  blue: blue.primary || blue[6],
-  cyan: cyan.primary || cyan[6],
-  volcano: volcano.primary || volcano[6],
-  orange: orange.primary || orange[6],
-  red: red.primary || red[6],
-  green: green.primary || green[6],
-  purple: purple.primary || purple[6],
-  magenta: magenta.primary || magenta[6],
-  gold: gold.primary || gold[6],
-  lime: lime.primary || lime[6],
+  blue: blue.primary || blue[5],
+  cyan: cyan.primary || cyan[5],
+  volcano: volcano.primary || volcano[5],
+  orange: orange.primary || orange[5],
+  red: red.primary || red[5],
+  green: green.primary || green[5],
+  purple: purple.primary || purple[5],
+  magenta: magenta.primary || magenta[5],
+  gold: gold.primary || gold[5],
+  lime: lime.primary || lime[5],
 };
 
 export const THEME_COLOR_NAMES: ThemeColors[] = [
@@ -118,6 +120,7 @@ export enum ENUM_ACTION_NAME {
   GLOBAL_SEARCH = 'action:globalSearch', // 全局搜索
   START_SYNC = 'action:startSync', // 开始同步
   HIBERNATE_TABS = 'action:hibernateTabs', // 休眠其他标签页
+  CREATE_SNAPSHOT = 'action:createSnapshot', // 创建快照
 }
 
 // action 名称枚举 (firefox)
@@ -147,6 +150,7 @@ export enum ENUM_SETTINGS_PROPS {
   OPEN_ADMIN_TAB_AFTER_SEND_TABS = 'openAdminTabAfterSendTabs', // 发送标签页后是否打开管理后台
   CLOSE_TABS_AFTER_SEND_TABS = 'closeTabsAfterSendTabs', // 发送标签页后是否关闭标签页
   ACTION_AUTO_CLOSE_FLAGS = 'actionAutoCloseFlags', // 各种发送标签页操作的自动关闭标签页标志
+  CREATE_NEW_GROUP_ON_SEND_SINGLE_TAB = 'createNewGroupOnSendSingleTab', // 发送单个标签页时是否创建新的标签组
   ALLOW_DUPLICATE_TABS = 'allowDuplicateTabs', // 同一个标签组中是否允许重复的标签页
   ALLOW_DUPLICATE_GROUPS = 'allowDuplicateGroups', // 同一个分类中是否允许重复的标签组
   /* 打开标签页配置 */
@@ -165,6 +169,7 @@ export enum ENUM_SETTINGS_PROPS {
   /* 其他操作配置 */
   DELETE_UNLOCKED_EMPTY_GROUP = 'deleteUnlockedEmptyGroup', // 是否删除未锁定的空标签组
   CONFIRM_BEFORE_DELETING_TABS = 'confirmBeforeDeletingTabs', // 删除标签页前是否需要确认
+  CONFIRM_BEFORE_DELETING_GROUPS = 'confirmBeforeDeletingGroups', // 删除标签组前是否需要确认
   LINK_TEMPLATE = 'linkTemplate', // 链接模板
   TAB_COUNT_THRESHOLD = 'tabCountThreshold', // 分类中标签页超过该数量时，则右侧面板开启虚拟滚动
   GROUP_INSERT_POSITION = 'groupInsertPosition', // 标签组插入位置：在分类的标签组列表顶部还是底部
@@ -179,6 +184,9 @@ export enum ENUM_SETTINGS_PROPS {
   AUTO_EXPAND_HOME_TREE = 'autoExpandHomeTree', // 进入列表页时，是否自动展开全部节点
   MAIN_CONTENT_WIDTH_TYPE = 'pageWidthType', // 主内容区域宽度类型
   SHOW_TAB_TITLE_TOOLTIP = 'showTabTitleTooltip', // 是否显示标签页标题的tooltip
+  /* 新标签页配置 */
+  NEW_TAB_DISPLAY = 'newTabDisplay', // 新标签页显示方式
+  SEARCH_ENGINES = 'searchEngines', // 搜索引擎配置
   /* 同步配置 */
   REMOTE_SYNC_WITH_SETTINGS = 'remoteSyncWithSettings', // 远程同步时，偏好设置是否一起同步
   AUTO_SYNC = 'autoSync', // 是否开启自动同步
@@ -201,6 +209,13 @@ export const TAB_EVENTS: Array<keyof Pick<Tabs.Static, TabEvents>> = [
   'onHighlighted',
 ];
 
+export const TAB_GROUP_EVENTS: Array<keyof Pick<Tabs.Static, TabGroupEvents>> = [
+  'onCreated',
+  'onMoved',
+  'onUpdated',
+  'onRemoved',
+];
+
 // 语言选项
 export const LANGUAGE_OPTIONS: Array<{
   key: LanguageTypes;
@@ -208,10 +223,37 @@ export const LANGUAGE_OPTIONS: Array<{
   label: string;
 }> = [
   { key: 'zh-CN', locale: 'zh-CN', label: '简体中文' },
+  { key: 'zh-TW', locale: 'zh-TW', label: '繁體中文' },
   { key: 'en-US', locale: 'en-US', label: 'English' },
+  { key: 'ru-RU', locale: 'ru-RU', label: 'Русский' },
 ];
 
 export const defaultLanguage: LanguageTypes = 'en-US';
+
+const LANGUAGE_PREFIX_MAP: Record<string, LanguageTypes> = {
+  zh: 'zh-CN',
+  en: 'en-US',
+  ru: 'ru-RU',
+};
+
+// 将浏览器语言（如 ru、zh-TW）映射到扩展支持的语言
+export function resolveLanguage(language?: string): LanguageTypes {
+  if (!language) return defaultLanguage;
+  const lower = language.toLowerCase();
+  const exact = LANGUAGE_OPTIONS.find(option => option.key.toLowerCase() === lower);
+  if (exact) return exact.key;
+  if (
+    lower.startsWith('zh') &&
+    (lower.includes('tw') ||
+      lower.includes('hk') ||
+      lower.includes('mo') ||
+      lower.includes('hant'))
+  ) {
+    return 'zh-TW';
+  }
+  const prefix = lower.split('-')[0];
+  return LANGUAGE_PREFIX_MAP[prefix] || defaultLanguage;
+}
 
 export const UNNAMED_TAG = 'Unnamed Tag';
 export const UNNAMED_GROUP = 'Unnamed Group';
@@ -278,13 +320,37 @@ export const pageContextTypes: PageContextType[] = [
   'optionsPage',
   'popupPage',
   'contentScriptPage',
+  'newtabPage',
 ];
 
 // 用户指南页面链接
 export const USER_GUIDE_URL_MAP: Record<LanguageTypes, string> = {
   'zh-CN': '/docs/GUIDE-zh.html',
+  'zh-TW': '/docs/GUIDE-zh.html',
   'en-US': '/docs/GUIDE.html',
+  'ru-RU': '/docs/GUIDE-ru.html',
 };
+
+// 更新日志页面链接
+export const CHANGELOG_URL_MAP: Record<LanguageTypes, string> = {
+  'zh-CN': '/docs/CHANGELOG-zh.html',
+  'zh-TW': '/docs/CHANGELOG-zh.html',
+  'en-US': '/docs/CHANGELOG.html',
+  'ru-RU': '/docs/CHANGELOG.html',
+};
+
+// 默认搜索引擎
+export const DEFAULT_SEARCH_ENGINES: SearchEngine[] = [
+  {
+    id: 'google',
+    name: 'Google',
+    url: 'https://www.google.com/search?q=%s',
+    default: true,
+  },
+  { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=%s' },
+  { id: 'baidu', name: 'Baidu', url: 'https://www.baidu.com/s?wd=%s' },
+  { id: 'duckduckgo', name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=%s' },
+];
 
 export default {
   ENUM_COLORS,
@@ -294,10 +360,14 @@ export default {
   ENUM_ACTION_NAME,
   ENUM_SETTINGS_PROPS,
   TAB_EVENTS,
+  TAB_GROUP_EVENTS,
   LANGUAGE_OPTIONS,
   defaultLanguage,
+  resolveLanguage,
   defaultAutoSyncType,
   UNNAMED_TAG,
   UNNAMED_GROUP,
   USER_GUIDE_URL_MAP,
+  CHANGELOG_URL_MAP,
+  DEFAULT_SEARCH_ENGINES,
 };

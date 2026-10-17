@@ -1,7 +1,7 @@
 import { useContext, useCallback, useEffect, useState } from 'react';
 import { browser, Tabs } from 'wxt/browser';
 import { ThemeProvider } from 'styled-components';
-import { theme, Space, Dropdown, Button, type MenuProps, Tooltip } from 'antd';
+import { theme, Space, Dropdown, Button, Switch, type MenuProps, Tooltip } from 'antd';
 import {
   DownOutlined,
   CompressOutlined,
@@ -74,6 +74,7 @@ export default function App() {
   const [modules, setModules] = useState<PopupModuleNames[]>([]);
   const [actionBtns, setActionBtns] = useState<ActionBtnItem[]>([]);
   const [isCompact, setIsCompact] = useState(true);
+  const [isShowPinnedTabs, setIsShowPinnedTabs] = useState(false);
 
   // 快捷跳转
   const quickJumpBtns = [
@@ -180,48 +181,11 @@ export default function App() {
     browser.tabs.highlight({ tabs: [tab.index] });
   }, []);
 
-  const handleTabDiscard = useCallback(async (tab: Tabs.Tab) => {
-    if (tab.active || tab.discarded) return;
-
-    tab.id && (await browser.tabs.discard(tab.id));
-    browser.tabs.query({ currentWindow: true }).then(async allTabs => {
-      const { tab: adminTab } = await getAdminTabInfo();
-      handleTabsChange(allTabs?.filter(t => t.id !== adminTab?.id && !t.pinned));
-    });
-  }, []);
-
-  const handleTabRemove = useCallback(
-    async (tab: Tabs.Tab) => {
-      const { tab: adminTab } = await getAdminTabInfo();
-      const newTabs = tabs.filter(
-        t => t.id !== tab.id && t.id !== adminTab?.id && !t.pinned,
-      );
-      handleTabsChange(newTabs);
-      if (tab.id) {
-        await browser.tabs.remove(tab.id);
-        browser.tabs.query({ currentWindow: true }).then(async allTabs => {
-          handleTabsChange(allTabs?.filter(t => t.id !== adminTab?.id && !t.pinned));
-        });
-      }
-    },
-    [tabs],
-  );
-
-  const handleTabAction = useCallback(
-    async (action: TabActions, tab: Tabs.Tab) => {
-      if (action === 'active') {
-        handleTabActive(tab);
-      } else if (action === 'discard') {
-        handleTabDiscard(tab);
-      } else if (action === 'remove') {
-        handleTabRemove(tab);
-      }
-    },
-    [tabs],
-  );
-
-  const handleTabsChange = useCallback(async (tabs: Tabs.Tab[]) => {
+  const handleTabsChange = useCallback(async (_tabs: Tabs.Tab[]) => {
+    const popupState = await stateUtils.getState('popup');
+    const tabs = _tabs.filter(tab => !!popupState?.isShowPinnedTabs || !tab.pinned);
     setTabs(tabs);
+
     let groupList: GroupListItem[] = [];
     if (!isGroupSupported()) {
       groupList = tabs.map(item => ({
@@ -249,16 +213,72 @@ export default function App() {
         for (const group of groupList) {
           if (group.groupId === -1) continue;
           const tabGroup = await browser.tabGroups.get(group.groupId);
-          console.log('tabGroup', tabGroup);
           group.groupName = tabGroup?.title || group.groupName;
           group.collapsed = tabGroup?.collapsed;
           group.color = tabGroup?.color;
         }
       }
     }
-    console.log('groupList', groupList);
+    // console.log('groupList', groupList);
     setTabGroupList(groupList);
   }, []);
+
+  const handleTabDiscard = useCallback(
+    async (tab: Tabs.Tab) => {
+      if (tab.active || tab.discarded) return;
+
+      tab.id && (await browser.tabs.discard(tab.id));
+      browser.tabs.query({ currentWindow: true }).then(async allTabs => {
+        const { tab: adminTab } = await getAdminTabInfo();
+        handleTabsChange(allTabs?.filter(t => t.id !== adminTab?.id));
+      });
+    },
+    [handleTabsChange],
+  );
+
+  const handleTabRemove = useCallback(
+    async (tab: Tabs.Tab) => {
+      const { tab: adminTab } = await getAdminTabInfo();
+      const newTabs = tabs.filter(t => t.id !== tab.id && t.id !== adminTab?.id);
+      handleTabsChange(newTabs);
+      if (tab.id) {
+        await browser.tabs.remove(tab.id);
+        browser.tabs.query({ currentWindow: true }).then(async allTabs => {
+          handleTabsChange(allTabs?.filter(t => t.id !== adminTab?.id));
+        });
+      }
+    },
+    [tabs, handleTabsChange],
+  );
+
+  const handleTabAction = useCallback(async (action: TabActions, tab: Tabs.Tab) => {
+    if (action === 'active') {
+      handleTabActive(tab);
+    } else if (action === 'discard') {
+      handleTabDiscard(tab);
+    } else if (action === 'remove') {
+      handleTabRemove(tab);
+    }
+  }, []);
+
+  const handlePinnedSwitchChange = useCallback(
+    async (checked: boolean) => {
+      setIsShowPinnedTabs(checked);
+      await stateUtils.setStateByModule('popup', { isShowPinnedTabs: checked });
+      browser.tabs.query({ currentWindow: true }).then(async allTabs => {
+        const { tab: adminTab } = await getAdminTabInfo();
+        handleTabsChange(allTabs?.filter(t => t.id !== adminTab?.id));
+      });
+    },
+    [handleTabsChange],
+  );
+
+  // 分组操作回调
+  const handleGroupAction = useCallback(async () => {
+    const { tab: adminTab } = await getAdminTabInfo();
+    const newTabs = tabs.filter(t => t.id !== adminTab?.id);
+    handleTabsChange(newTabs);
+  }, [tabs]);
 
   const init = async () => {
     const settings = await settingsUtils.getSettings();
@@ -270,11 +290,13 @@ export default function App() {
 
     const popupState = await stateUtils.getState('popup');
     setIsCompact(!!popupState?.isCompact);
+    const _isShowPinnedTabs = !!popupState?.isShowPinnedTabs;
+    setIsShowPinnedTabs(_isShowPinnedTabs);
 
     if (modules.includes('openedTabs')) {
       browser.tabs.query({ currentWindow: true }).then(async allTabs => {
         const { tab: adminTab } = await getAdminTabInfo();
-        handleTabsChange(allTabs?.filter(t => t.id !== adminTab?.id && !t.pinned));
+        handleTabsChange(allTabs?.filter(t => t.id !== adminTab?.id));
       });
     }
   };
@@ -306,6 +328,19 @@ export default function App() {
     return null;
   };
 
+  function PinnedTabsHeaderMarkup({ isCompact }: { isCompact: boolean }) {
+    return (
+      <div className={`pinned-tabs-switch-header ${isCompact ? 'compact' : ''}`}>
+        <span>{$fmt('home.displayPinnedTabs')}</span>
+        <Switch
+          checked={isShowPinnedTabs}
+          size="small"
+          onChange={handlePinnedSwitchChange}
+        ></Switch>
+      </div>
+    );
+  }
+
   return (
     <ThemeProvider theme={{ ...themeTypeConfig, ...token }}>
       <StyledContainer className="popup-container select-none">
@@ -324,62 +359,68 @@ export default function App() {
             />
           </Tooltip>
           {isCompact ? (
-            <div className="compact-toolbar">
-              {/* GitHub */}
-              <Tooltip title={$fmt('common.goToGithub')} placement="bottom">
-                <Button
-                  type="text"
-                  icon={<GithubOutlined />}
-                  onClick={() =>
-                    openNewTab(GITHUB_URL, { active: true, openToNext: true })
-                  }
-                />
-              </Tooltip>
+            <>
+              <div className="compact-toolbar">
+                {/* GitHub */}
+                <Tooltip title={$fmt('common.goToGithub')} placement="bottom">
+                  <Button
+                    type="text"
+                    icon={<GithubOutlined />}
+                    onClick={() =>
+                      openNewTab(GITHUB_URL, { active: true, openToNext: true })
+                    }
+                  />
+                </Tooltip>
 
-              {/* Goto Actions */}
-              {modules.includes('goto') &&
-                quickJumpBtns
-                  .filter(item => !item.disabled)
-                  .map(item => (
-                    <Tooltip key={item.path} title={item.label} placement="bottom">
-                      <Button
-                        type="text"
-                        icon={getActionIcon('', item.path)}
-                        onClick={item.onClick}
-                      />
-                    </Tooltip>
-                  ))}
-
-              {/* Functional Actions */}
-              {modules.includes('actions') &&
-                actionBtns.map(item => {
-                  if (item.type === 'group' && item.children?.length) {
-                    return (
-                      <Dropdown
-                        key={item.key}
-                        menu={{
-                          items: item.children as MenuProps['items'],
-                          onClick: item.onClick,
-                        }}
-                        placement="bottomLeft"
-                      >
-                        <Button type="text" icon={getActionIcon(item.key)} />
-                      </Dropdown>
-                    );
-                  } else {
-                    return (
-                      <Tooltip key={item.key} title={item.label} placement="bottom">
+                {/* Goto Actions */}
+                {modules.includes('goto') &&
+                  quickJumpBtns
+                    .filter(item => !item.disabled)
+                    .map(item => (
+                      <Tooltip key={item.path} title={item.label} placement="bottom">
                         <Button
                           type="text"
-                          disabled={item.disabled}
+                          icon={getActionIcon('', item.path)}
                           onClick={item.onClick}
-                          icon={getActionIcon(item.key)}
                         />
                       </Tooltip>
-                    );
-                  }
-                })}
-            </div>
+                    ))}
+
+                {/* Functional Actions */}
+                {modules.includes('actions') &&
+                  actionBtns.map(item => {
+                    if (item.type === 'group' && item.children?.length) {
+                      return (
+                        <Dropdown
+                          key={item.key}
+                          menu={{
+                            items: item.children as MenuProps['items'],
+                            onClick: item.onClick,
+                          }}
+                          placement="bottomLeft"
+                          destroyPopupOnHide
+                        >
+                          <Button type="text" icon={getActionIcon(item.key)} />
+                        </Dropdown>
+                      );
+                    } else {
+                      return (
+                        <Tooltip key={item.key} title={item.label} placement="bottom">
+                          <Button
+                            type="text"
+                            disabled={item.disabled}
+                            onClick={item.onClick}
+                            icon={getActionIcon(item.key)}
+                          />
+                        </Tooltip>
+                      );
+                    }
+                  })}
+              </div>
+              {modules.includes('openedTabs') && tabGroupList.length && (
+                <PinnedTabsHeaderMarkup isCompact={isCompact} />
+              )}
+            </>
           ) : (
             <>
               {/* 该模块不会渲染，目前未配置模块时，单击扩展图标会直接发送所有标签页，不会打开popup面板 */}
@@ -471,7 +512,10 @@ export default function App() {
                 </div>
               )}
               {modules.includes('openedTabs') && (
-                <div className="tab-list-title">{$fmt('common.openedTabs')}：</div>
+                <div className="tab-list-title">
+                  <span>{$fmt('common.openedTabs')}：</span>
+                  <PinnedTabsHeaderMarkup isCompact={isCompact} />
+                </div>
               )}
             </>
           )}
@@ -485,6 +529,7 @@ export default function App() {
                 key={~group.groupId || index}
                 group={group}
                 onAction={handleTabAction}
+                onGroupAction={handleGroupAction}
               ></TabGroupItem>
             ))}
           </div>

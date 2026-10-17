@@ -35,7 +35,7 @@ const zhCN = {
   'sync.tip.resetStatus': '状态重置',
   'sync.tip.tokenChange': '修改access token会清空本地{type}的同步历史记录',
   // 'sync.tip.contentTooLarge': '远程文件内容太大，返回的内容被 gist API 截断了，取消合并到本地',
-  'sync.tip.syncHistory': '同步历史只保留最近的50条记录，您还可以手动清空历史记录',
+  'sync.tip.syncHistory': '同步历史只保留最近的50条记录，您也可以手动清空历史记录',
   'sync.tip.supportTip': '远程同步已支持标签页列表和偏好设置同步，同步操作时会同时同步标签页列表和偏好设置数据，不支持分开同步。',
   'sync.getYourToken': '前往获取/设置 token',
   'sync.syncHistory': '同步历史记录',
@@ -56,6 +56,12 @@ const zhCN = {
   'sync.tip.connectionName': '用于区分多个 webDAV 的配置名称',
   'sync.tip.directory': `WebDAV 目录，可填写多级目录，如 <strong>/dir/subdir</strong>`,
   'sync.tip.filename': `数据存储文件名，可使用任意后缀名，如 <strong>nicetab-sync.txt</strong>`,
+
+  // 备份相关
+  'sync.bakFilename': '备份文件名',
+  'sync.tip.bakFilenameGists': '远程容灾备份文件名，或许用得上',
+  'sync.bakDirectory': '备份目录',
+  'sync.tip.bakDirectory': 'WebDAV 远程容灾备份目录，可填写多级目录，如 <strong>/dir/subdir</strong>',
 }
 
 export type LocaleKey = keyof typeof zhCN;

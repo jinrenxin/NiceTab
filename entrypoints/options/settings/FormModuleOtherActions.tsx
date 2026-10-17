@@ -3,12 +3,13 @@ import type { FormItemProps, FormInstance } from 'antd';
 import type { SettingsProps } from '~/entrypoints/types';
 import { ENUM_SETTINGS_PROPS } from '~/entrypoints/common/constants';
 import { useIntlUtls } from '~/entrypoints/common/hooks/global';
-import useTooltipOption from '@/entrypoints/common/hooks/tooltipOption';
+import useTooltipOption from '~/entrypoints/common/hooks/tooltipOption';
 import QuickActions from './components/QuickActions';
 
 const {
   DELETE_UNLOCKED_EMPTY_GROUP,
   CONFIRM_BEFORE_DELETING_TABS,
+  CONFIRM_BEFORE_DELETING_GROUPS,
   LINK_TEMPLATE,
   TAB_COUNT_THRESHOLD,
   GROUP_INSERT_POSITION,
@@ -42,7 +43,6 @@ export default function FormModuleOtherActions(
           values: { mark: '：' },
         })}
         name={DELETE_UNLOCKED_EMPTY_GROUP}
-        {...formItemProps}
       >
         <Radio.Group>
           <Radio value={true}>
@@ -60,6 +60,20 @@ export default function FormModuleOtherActions(
           values: { mark: '：' },
         })}
         name={CONFIRM_BEFORE_DELETING_TABS}
+      >
+        <Radio.Group>
+          <Radio value={true}>{$fmt('common.yes')}</Radio>
+          <Radio value={false}>{$fmt('common.no')}</Radio>
+        </Radio.Group>
+      </Form.Item>
+
+      {/* 删除标签组前是否需要确认 */}
+      <Form.Item<SettingsProps>
+        label={$fmt({
+          id: `settings.${CONFIRM_BEFORE_DELETING_GROUPS}`,
+          values: { mark: '：' },
+        })}
+        name={CONFIRM_BEFORE_DELETING_GROUPS}
       >
         <Radio.Group>
           <Radio value={true}>{$fmt('common.yes')}</Radio>

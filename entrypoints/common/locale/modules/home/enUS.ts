@@ -35,6 +35,7 @@ const enUS: Record<LocaleKey, string> = {
   'home.tag.countInfo': 'Current Counts',
   'home.tag.lock': 'Lock the Tag',
   'home.tag.unlock': 'Unlock the Tag',
+  'home.tag.open': 'Open Tag',
 
   'home.tabGroup.add': 'Create Tab Group',
   'home.tabGroup.remove': 'Remove',
@@ -45,6 +46,8 @@ const enUS: Record<LocaleKey, string> = {
   'home.tabGroup.unstar': 'Untop',
   'home.tabGroup.recover': 'Recover',
   'home.tabGroup.open': 'Open Group',
+  'home.tabGroup.addGroupBefore': 'Create Group Before',
+  'home.tabGroup.addGroupAfter': 'Create Group After',
   'home.tabGroup.tabsSortAsc': 'Title Ascending',
   'home.tabGroup.tabsSortDesc': 'Title Descending',
 
@@ -80,6 +83,8 @@ const enUS: Record<LocaleKey, string> = {
   'home.getPermission.tabGroups': 'Get "tabGroups" Permission',
   'home.getPermission.tabGroups.tip': 'Grant "tabGroups" permission to access the native tab group feature for a better experience!',
 
+  'home.displayPinnedTabs': 'Display Pinned Tabs?',
+
   'home.help.tip.userGuide': 'For more information, please refer to the {userGuide}.',
   'home.help.reminder.start': 'For security reasons, Firefox may not allow privileged URLs such as:',
   'home.help.reminder.list': `
@@ -92,8 +97,11 @@ const enUS: Record<LocaleKey, string> = {
   'home.help.reminder.end': 'If the URL of a page matches any of the above cases, opening the tab may not work. Please manually copy the URL to open it.',
 
   'home.help.content': `
-    <li>The left-side list displays the tags, and the secondary menus represent the tab groups. The list supports searching for both tags and tab groups. The right-side panel displays all the tab groups and the tabs within each tab group.</li>
-    <li>The tabs in the right-side panel support drag-and-drop sorting and cross-group movement. You can also drag the tabs from the right-side panel to the groups in the left-side list. Additionally, you can click the "Move To" button to move tab group and tabs.</li>
+    <li>The List page consists of three parts: the left Directory Tree (category and tab group directory index), the middle Stored Tab List (all tab groups and tabs in the currently selected category), and the right Opened Tabs Panel.</li>
+    <li>The left Directory Tree uses primary items to represent tags (categories) and secondary items to represent tab groups. It supports searching for both categories and tab groups. The middle list displays all tab groups within the currently selected category, along with the tabs contained in each tab group.</li>
+    <li>Tabs in the middle list support drag-and-drop reordering and moving between tab groups. You can also drag tabs from the middle list onto tab groups in the left Directory Tree to move them across categories. Alternatively, click the "Move To" button to relocate tab groups and tabs.</li>
+    <li>The collapsible panel on the right side of the page displays the tabs and tab groups currently opened in the browser window. Tabs in this panel support quick multi-selection and batch drag-and-drop to the middle list or to nodes in the left Directory Tree. You can also drag entire tab groups directly.</li>
+    <li>For more detailed information and usage tips, please refer to the "User Guide".</li>
     <li>When a tab group is locked, the group and its tabs cannot be removed or moved out. However, tabs from other tab groups can be moved into the locked group. To remove a tab group, you need to first unlock it.</li>
     <li>When a tab group is starred, it will be placed at the top of the current category. Moving other tab groups to a position before the starred tab group will automatically star them as well. If a starred tab group is moved to a position after a non-starred tab group, the star status will be automatically released.</li>
     <li>The Staging Area is a special category, fixed at the top of the list. When sending tabs, they will be saved to the Staging Area.</li>
@@ -101,11 +109,10 @@ const enUS: Record<LocaleKey, string> = {
     <li>
       <strong>Left Click</strong>: this will open a new tab and jump to it.<br>
       <strong>Alt + Left Click</strong>: this will silently open a new tab and stay on the NiceTab page.
+      You can modify the preference settings to adjust your click behavior.
     </li>
-    <li>The "Recover" action means recover the tags / tab groups / tabs from the "Recycle Bin" to the "List" home.</li>
     <li>The "Ascending" and "Descending" only work for unstarred tab groups in the current category.</li>
-    <li><strong>Note</strong>: To ensure performance, when the number of tabs in the category exceeds a certain threshold, the right panel will enable virtual scrolling, displaying partial tab groups based on the scrolling position.</li>
-    <li>Tags / tab groups / tabs support drag-and-drop sorting. When a category/tab group is selected, it can be sorted using shortcuts. The shortcuts are shown in the table below:</li>
+    <li>Tags (categories), tab groups, and tabs in the left Directory Tree support drag-and-drop reordering. When a category or tab group is selected, you can sort them using keyboard shortcuts. The shortcut mappings are shown in the table below:</li>
   `,
   'home.help.hotkey.1': `The above shortcuts are only available for the home page. In addition, the extension also registers browser shortcuts for several commonly used actions, (such as`,
   'home.help.hotkey.2': `); You can also go to the extension page by yourself and `,
@@ -125,6 +132,7 @@ const enUS: Record<LocaleKey, string> = {
     'The number of tabs exceeds the set value, enabling virtual scrolling.',
   'home.tip.addScope':
     'The next version will add new features that require additional authorization. Once the new version is released, the NiceTab extension will be automatically disabled. If you want to continue using it, please manually enable it.',
+  'home.tip.multiSelection': 'Shift multi-select: Step1, Shift + Click A (got highlighted A); Step2, Shift + Click B (A to B selected). It is also applicable to the tab list in the middle of the page',
 
   'recycleBin.tip.autoClear':
     'Note: The recycle bin will be automatically cleared once a day!',

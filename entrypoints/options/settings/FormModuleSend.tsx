@@ -8,7 +8,7 @@ import {
   ENUM_SETTINGS_PROPS,
 } from '~/entrypoints/common/constants';
 import { useIntlUtls } from '~/entrypoints/common/hooks/global';
-import useTooltipOption from '@/entrypoints/common/hooks/tooltipOption';
+import useTooltipOption from '~/entrypoints/common/hooks/tooltipOption';
 
 const {
   OPEN_ADMIN_TAB_AFTER_SEND_TABS,
@@ -17,6 +17,7 @@ const {
   SHOW_SEND_TARGET_MODAL,
   ALLOW_SEND_PINNED_TABS,
   EXCLUDE_DOMAINS_FOR_SENDING,
+  CREATE_NEW_GROUP_ON_SEND_SINGLE_TAB,
   ALLOW_DUPLICATE_TABS,
   ALLOW_DUPLICATE_GROUPS,
 } = ENUM_SETTINGS_PROPS;
@@ -50,7 +51,6 @@ export default function FormModuleSend(
         tooltip={getFormTooltipOption({
           title: $fmt(`settings.${SHOW_SEND_TARGET_MODAL}.tooltip`),
         })}
-        {...formItemProps}
       >
         <Radio.Group>
           <Radio value={true}>{$fmt('common.yes')}</Radio>
@@ -106,6 +106,19 @@ export default function FormModuleSend(
           <Radio value={false}>
             {$fmt(`settings.${OPEN_ADMIN_TAB_AFTER_SEND_TABS}.no`)}
           </Radio>
+        </Radio.Group>
+      </Form.Item>
+      {/* 发送单个标签页时是否创建新的标签组 */}
+      <Form.Item<SettingsProps>
+        label={$fmt(`settings.${CREATE_NEW_GROUP_ON_SEND_SINGLE_TAB}`)}
+        name={CREATE_NEW_GROUP_ON_SEND_SINGLE_TAB}
+        tooltip={getFormTooltipOption({
+          title: $fmt(`settings.${CREATE_NEW_GROUP_ON_SEND_SINGLE_TAB}.tooltip`),
+        })}
+      >
+        <Radio.Group>
+          <Radio value={true}>{$fmt('common.yes')}</Radio>
+          <Radio value={false}>{$fmt(`common.no`)}</Radio>
         </Radio.Group>
       </Form.Item>
       {/* 发送标签页后是否关闭标签页 */}

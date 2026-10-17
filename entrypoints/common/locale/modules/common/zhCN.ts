@@ -30,6 +30,7 @@ const zhCN = {
   'common.more': '更多',
   'common.delete': '删除',
   'common.remove': '删除',
+  'common.add': '添加',
   'common.edit': '编辑',
   'common.extensionInfo': '扩展信息',
   'common.view': '查看',
@@ -108,6 +109,7 @@ const zhCN = {
   'common.aborted': '请求取消',
   'common.networkError': '网络连接异常',
   'common.userGuide': '用户指南',
+  'common.changelog': '更新日志',
   'common.itemCount': `{count}项`,
   'common.matchMode': '匹配模式',
   'common.equal': '相同',
@@ -115,6 +117,7 @@ const zhCN = {
   'common.endsWith': '结束于',
   'common.contains': '包含',
   'common.regex': '正则',
+  'common.wildcard': '通配符',
   'common.directory': '目录',
   'common.filename': '文件名',
   'common.expand': '展开',
@@ -127,6 +130,9 @@ const zhCN = {
   'common.filter': '筛选',
   'common.locked': '已锁定',
   'common.starred': '已星标',
+  'common.tips': '提示',
+  'common.setAsDefault': '设为默认选项',
+  'common.unnamed': '未命名',
 };
 
 export type LocaleKey = keyof typeof zhCN;

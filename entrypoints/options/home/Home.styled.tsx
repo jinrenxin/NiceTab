@@ -1,11 +1,13 @@
 import styled from 'styled-components';
 import { StyledEllipsis } from '~/entrypoints/common/style/Common.styled';
 import type { StyledThemeProps } from '~/entrypoints/types';
-import { StyledBaseSidebarWrapper, StyledBaseMainWrapper } from '../Layout.styled';
+import { StyledBaseMainWrapper } from '../Layout.styled';
+import SidebarLayout from '../components/SidebarLayout';
+import RightPanelLayout from '../components/RightPanelLayout';
 
 export const StyledMainWrapper = StyledBaseMainWrapper;
 
-export const StyledSidebarWrapper = styled(StyledBaseSidebarWrapper)<{
+export const StyledSidebarWrapper = styled(SidebarLayout)<{
   theme: StyledThemeProps;
 }>`
   .sidebar-inner-content {
@@ -68,7 +70,7 @@ export const StyledTreeNodeItem = styled.div`
     align-items: center;
     margin-left: 8px;
     flex-shrink: 0;
-    gap: 2px;
+    gap: 4px;
     visibility: hidden;
     pointer-eventes: none;
   }
@@ -90,12 +92,48 @@ export const StyledHelpInfoBox = styled.div`
   }
 `;
 
+export const StyledRightPanelWrapper = styled(RightPanelLayout)<{
+  theme: StyledThemeProps;
+}>`
+  .right-panel-inner-content {
+    display: flex;
+    flex-direction: column;
+    .opened-tabs-title {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .opened-tabs-list {
+      flex: 1;
+      height: 0;
+      overflow-y: auto;
+      .no-data {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+      }
+    }
+    .tab-list-checkbox-group {
+      width: 100%;
+      display: block;
+    }
+  }
+`;
+
 export const StyledGroupList = styled.div`
   .tip {
     padding: 0 16px;
     margin-bottom: 8px;
   }
   .count-info {
+    position: relative;
     display: flex;
     align-items: center;
     padding: 0 16px;

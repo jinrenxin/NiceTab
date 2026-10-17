@@ -32,6 +32,7 @@ const enUS: Record<LocaleKey, string> = {
   'common.more': 'More',
   'common.delete': 'Delete',
   'common.remove': 'Remove',
+  'common.add': 'Add',
   'common.edit': 'Edit',
   'common.extensionInfo': 'Extension Info',
   'common.view': 'View',
@@ -115,6 +116,7 @@ const enUS: Record<LocaleKey, string> = {
   'common.aborted': 'Request Aborted',
   'common.networkError': 'Network Connection Error',
   'common.userGuide': 'User Guide',
+  'common.changelog': 'Changelog',
   'common.itemCount': `{count, plural,
     =0 {No Items}
     =1 {# Item}
@@ -126,6 +128,7 @@ const enUS: Record<LocaleKey, string> = {
   'common.endsWith': 'Ends With',
   'common.contains': 'Contains',
   'common.regex': 'Regex',
+  'common.wildcard': 'Wildcard',
   'common.directory': 'Directory',
   'common.filename': 'Filename',
   'common.expand': 'Expand',
@@ -138,6 +141,9 @@ const enUS: Record<LocaleKey, string> = {
   'common.filter': 'Filter',
   'common.locked': 'Locked',
   'common.starred': 'Starred',
+  'common.tips': 'Tips',
+  'common.setAsDefault': 'Set as Default',
+  'common.unnamed': 'Unnamed',
 };
 
 export default enUS;

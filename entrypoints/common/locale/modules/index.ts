@@ -5,6 +5,8 @@ import settings from './settings';
 import importExport from './importExport';
 import sync from './sync';
 import hotkeys from './hotkeys';
+import newtab from './newtab';
+import snapshots from './snapshots';
 
 const getLocales = (language: LanguageTypes) => {
   return {
@@ -13,16 +15,22 @@ const getLocales = (language: LanguageTypes) => {
     ...settings[language],
     ...importExport[language],
     ...sync[language],
-    ...hotkeys[language]
-  }
-}
+    ...hotkeys[language],
+    ...newtab[language],
+    ...snapshots[language],
+  };
+};
 export const zhCN = getLocales('zh-CN');
+export const zhTW = getLocales('zh-TW');
 export const enUS = getLocales('en-US');
+export const ruRU = getLocales('ru-RU');
 
 export type LocaleModules = typeof zhCN;
 export const modules: Record<LanguageTypes, typeof zhCN> = {
   'zh-CN': zhCN,
-  'en-US': enUS
+  'zh-TW': zhTW,
+  'en-US': enUS,
+  'ru-RU': ruRU,
 };
 
 export default modules;

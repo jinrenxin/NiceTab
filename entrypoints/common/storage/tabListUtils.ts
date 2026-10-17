@@ -1,6 +1,12 @@
 import { Key } from 'react';
 import { Tabs } from 'wxt/browser';
 // import { storage } from 'wxt/storage';
+import dayjs from 'dayjs';
+import {
+  // attachInstruction,
+  extractInstruction,
+  type Instruction,
+} from '@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item';
 import type {
   SendTargetProps,
   TagItem,
@@ -12,7 +18,6 @@ import type {
   SnapshotItem,
   InsertPositions,
 } from '~/entrypoints/types';
-import dayjs from 'dayjs';
 import { getCustomLocaleMessages } from '~/entrypoints/common/locale';
 import type { DragData } from '~/entrypoints/common/components/DndComponent';
 import { ENUM_SETTINGS_PROPS, UNNAMED_TAG, UNNAMED_GROUP } from '../constants';
@@ -31,6 +36,7 @@ import Store from './instanceStore';
 const {
   OPENING_TABS_ORDER,
   DELETE_UNLOCKED_EMPTY_GROUP,
+  CREATE_NEW_GROUP_ON_SEND_SINGLE_TAB,
   ALLOW_DUPLICATE_TABS,
   ALLOW_DUPLICATE_GROUPS,
   LINK_TEMPLATE,
@@ -342,13 +348,31 @@ export default class TabListUtils {
       tabList: [],
     };
   }
-  async createTabGroup(tagId: Key, tabGroup?: GroupItem) {
+  // 创建标签组 tagId: 分类id, tabGroup: 新创建的标签组数据（可空）, groupId: 标签组id, pop: before | after
+  async createTabGroup(
+    tagId: Key,
+    tabGroup?: Partial<GroupItem>,
+    groupId?: Key,
+    pos?: 'before' | 'after',
+  ) {
     const tagList = await this.getTagList();
     const newGroup = Object.assign(this.getInitialTabGroup(), tabGroup);
     for (let tag of tagList) {
       if (tag.tagId === tagId) {
-        const index = tag.groupList.findIndex(g => !g.isStarred);
-        tag.groupList.splice(index > -1 ? index : tag.groupList.length, 0, newGroup);
+        if (!groupId) {
+          const index = tag.groupList.findIndex(g => !g.isStarred);
+          tag.groupList.splice(index > -1 ? index : tag.groupList.length, 0, newGroup);
+        } else {
+          const index = tag.groupList.findIndex(g => g.groupId === groupId);
+          if (pos === 'before') {
+            const currGroup = tag.groupList[index];
+            if (currGroup.isStarred) newGroup.isStarred = true;
+          } else {
+            const nextGroup = tag.groupList[index + 1];
+            if (nextGroup?.isStarred) newGroup.isStarred = true;
+          }
+          tag.groupList.splice(index + (pos === 'after' ? 1 : 0), 0, newGroup);
+        }
         break;
       }
     }
@@ -912,12 +936,20 @@ export default class TabListUtils {
       await this.setTagList(this.tagList);
       return { tagId: targetTagId, groupId: targetGroupId };
     }
-    // 不存在标签组或者createNewGroup=true，就创建一个新标签组
-    const newtabGroup = this.getInitialTabGroup();
+
     if (!settings?.[ALLOW_DUPLICATE_TABS]) {
       newTabs = getUniqueList(newTabs, 'url');
     }
-    newtabGroup.tabList = newTabs;
+    const createNewGroup = settings?.[CREATE_NEW_GROUP_ON_SEND_SINGLE_TAB] || false;
+    // createNewGroup=true，就创建一个新标签组
+    let newtabGroup = this.getInitialTabGroup();
+    if (createNewGroup || newTabs.length > 1) {
+      newtabGroup.tabList = newTabs;
+    } else {
+      const index = tag0?.groupList?.findIndex?.(g => !g.isStarred && !g.isLocked);
+      newtabGroup = ~index ? tag0?.groupList?.[index] : newtabGroup;
+      newtabGroup.tabList = [...newTabs, ...newtabGroup.tabList];
+    }
 
     if (tag0) {
       if (!settings?.[ALLOW_DUPLICATE_GROUPS]) {
@@ -933,8 +965,12 @@ export default class TabListUtils {
           return { tagId: tag0.tagId, groupId: sameNameGroup.groupId };
         }
       }
-      const index = tag0.groupList.findIndex(g => !g.isStarred);
-      tag0.groupList.splice(index > -1 ? index : tag0.groupList.length, 0, newtabGroup);
+      const index = tag0.groupList.findIndex(g => !g.isStarred && !g.isLocked);
+      if (createNewGroup || newTabs.length > 1) {
+        tag0.groupList.splice(index > -1 ? index : tag0.groupList.length, 0, newtabGroup);
+      } else {
+        tag0.groupList.splice(index > -1 ? index : tag0.groupList.length, 1, newtabGroup);
+      }
       // await this.setTagList([tag0, ...this.tagList.slice(1)]);
       await this.setTagList(this.tagList);
       return { tagId: tag0.tagId, groupId: newtabGroup.groupId };
@@ -1106,6 +1142,21 @@ export default class TabListUtils {
 
     await this.setTagList(tagList);
   }
+
+  // 添加单个标签页到标签组
+  async addTabItem(groupId: string, tab: TabItem) {
+    const tagList = await this.getTagList();
+    for (let tag of tagList) {
+      for (let g of tag.groupList) {
+        if (g.groupId === groupId) {
+          g.tabList.push(tab);
+          await this.setTagList(tagList);
+          return;
+        }
+      }
+    }
+  }
+
   // tab标签页拖拽
   async onTabDrop(
     sourceGroupId: Key,
@@ -1293,6 +1344,112 @@ export default class TabListUtils {
 
     await this.setTagList(tagList);
   }
+  // 打开的浏览器标签页拖拽到列表
+  async onOpenedTabsDrop(
+    sourceData: DragData,
+    targetData: DragData,
+    targetIndex: number,
+  ) {
+    let selectedTabs: Tabs.Tab[] = [];
+    if (sourceData.isMultiSelect) {
+      selectedTabs = sourceData.selectedTabs;
+    } else {
+      selectedTabs = [sourceData.draggingTabItem];
+    }
+
+    if (!selectedTabs.length) return;
+
+    const tagList = await this.getTagList();
+
+    // 将浏览器 Tab 对象转换为 TabItem 格式
+    const newTabItems: TabItem[] = selectedTabs.map(tab => ({
+      ...tab,
+      tabId: getRandomId(),
+    }));
+
+    // 遍历找到目标标签组并插入
+    let isTargetFound = false;
+    for (let tag of tagList) {
+      for (let group of tag.groupList) {
+        if (group.groupId === targetData.groupId) {
+          group.tabList.splice(targetIndex, 0, ...newTabItems);
+          isTargetFound = true;
+          break;
+        }
+      }
+      if (isTargetFound) break;
+    }
+
+    if (isTargetFound) {
+      await this.setTagList(tagList);
+    }
+  }
+  // 打开的浏览器标签组拖拽到分类
+  async onOpenedTabGroupDrop(sourceData: DragData, targetData: DragData) {
+    const settings = await Store.settingsUtils.getSettings();
+    const tagList = await this.getTagList();
+
+    const instruction: Instruction | null = extractInstruction(targetData);
+    const targetTagIndex = tagList.findIndex(tag => tag.tagId === targetData.tagId);
+    // 入参 targetData 类型为 DragData，需要获取 tagList 中对应的分类数据，数据类型为 TagItem
+    let _targetData = tagList[targetTagIndex];
+    let targetGroupIndex = 0;
+    let targetGroupLength = targetData.nodeData?.groupList?.length || 0;
+
+    if (targetData.nodeType === 'tag') {
+      // 如果是 'make-child'，则说明拖拽到当前的分类节点
+      if (instruction?.type === 'make-child') {
+        targetGroupIndex =
+          settings[GROUP_INSERT_POSITION] === 'bottom' ? targetGroupLength : 0;
+      }
+      // 如果是 'reorder-above'，则说明拖拽到当前的分类前一个节点末尾
+      else if (instruction?.type === 'reorder-above') {
+        if (targetTagIndex > 0) {
+          _targetData = tagList[targetTagIndex - 1];
+          targetGroupIndex = _targetData.groupList?.length || 0;
+        }
+      }
+      // 如果是 'reorder-below'，则说明拖拽到当前的分类节点末尾
+      else if (instruction?.type === 'reorder-below') {
+        targetGroupIndex = targetGroupLength;
+      }
+    } else if (targetData.nodeType === 'tabGroup') {
+      const currGroupIndex = _targetData?.groupList?.findIndex(
+        group => group.groupId === targetData.groupId,
+      );
+
+      // 如果是 'reorder-above'，则说明拖拽到当前分组之前
+      if (instruction?.type === 'reorder-above') {
+        targetGroupIndex = currGroupIndex;
+      }
+      // 如果是 'reorder-below'，则说明拖拽到当前分组之后
+      else if (instruction?.type === 'reorder-below') {
+        targetGroupIndex = currGroupIndex + 1;
+      }
+    }
+
+    const lastStarredIndex = _targetData.groupList.findLastIndex(g => g.isStarred);
+    let needStarred = false;
+    if (~lastStarredIndex && targetGroupIndex <= lastStarredIndex) {
+      needStarred = true;
+    }
+
+    const newGroup = {
+      ...this.getInitialTabGroup(),
+      isStarred: needStarred,
+      groupName: sourceData?.selectedGroup?.groupName || sourceData?.groupName,
+      tabList: (sourceData?.selectedGroup?.tabs || sourceData?.tabs || [])?.map?.(
+        (tab: Tabs.Tab) => ({
+          tabId: getRandomId(),
+          ...pick(tab, ['title', 'url', 'favIconUrl']),
+        }),
+      ),
+    };
+    _targetData.groupList?.splice(targetGroupIndex, 0, newGroup);
+
+    await this.setTagList(tagList);
+  }
+
   // tab标签页移动到（穿越）
   async tabMoveThrough({
     sourceGroupId,
@@ -1465,12 +1622,12 @@ export default class TabListUtils {
   // 导入
   async importTags(tags: TagItem[], importMode = 'append') {
     const tagList = await this.getTagList();
-    const needOverride =
-      importMode === 'override' ||
+    const needOverwrite =
+      importMode === 'overwrite' ||
       !tagList.length ||
       (tagList.length == 1 && !tagList?.[0].groupList?.length);
 
-    if (needOverride) {
+    if (needOverwrite) {
       await this.setTagList(tags);
     } else if (importMode === 'merge') {
       // merge mode
