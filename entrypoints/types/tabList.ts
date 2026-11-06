@@ -26,6 +26,14 @@ export interface TagItem {
   isStarred?: boolean;
 }
 
+// NiceTab数据结构
+export interface NiceTabListData {
+  version: number;
+  dataSource: 'nicetab';
+  lastSyncTime?: string;
+  data: TagItem[];
+}
+
 /* keptab 格式相关  */
 export interface KepTabItem {
   url: string;
@@ -127,7 +135,7 @@ export interface SendTargetProps {
 
 // 已打开标签页快照列表元素
 export type SnapshotGroupItem = GroupItem & { type: 'group'; bsGroupId: number };
-export type SnapshotTabItem = TabItem & { type: 'tab' };
+export type SnapshotTabItem = Partial<TabItem> & { type: 'tab' };
 export type SnapshotItem = SnapshotGroupItem | SnapshotTabItem;
 
 export type SnapshotSource = 'manual' | 'auto';
@@ -163,7 +171,7 @@ export interface SnapshotRecord {
 }
 
 export interface SnapshotStore {
-  version: 2;
+  version: number;
   manual: SnapshotRecord[];
   auto?: SnapshotRecord;
 }

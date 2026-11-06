@@ -6,6 +6,32 @@ For the most detailed and up-to-date release notes, see [GitHub Releases](https:
 
 ---
 
+## v3.0.7
+**Release Date:** October 31, 2026
+
+- Adjusted the theme color list for Dark Mode
+- Adjusted the theme tokens for Dark Mode
+
+---
+
+## v3.0.6
+**Release Date:** October 25, 2026
+
+- Change the caching method of the tab favicon to indexedDB
+- Optimized tab event listening in the right panel
+- Added scrollbar styles for Firefox
+
+---
+
+## v3.0.5
+**Release Date:** October 18, 2026
+
+- Optimized favicon retrieval logic
+- Style changed of the send-target-modal
+- Added unit test cases
+
+---
+
 ## v3.0.4
 
 **Release Date:** September 30, 2026
